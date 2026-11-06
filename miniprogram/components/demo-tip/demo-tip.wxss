@@ -1,0 +1,28 @@
+.demo-tip {
+  display: flex;
+  align-items: center;
+  margin: 16rpx 0 0;
+  padding: 14rpx 20rpx;
+  background: #fff6ef;
+  border: 1rpx solid #ffe2cc;
+  border-radius: 14rpx;
+  font-size: 22rpx;
+  color: #b05a29;
+}
+.dot {
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 50%;
+  background: #f0a06a;
+  margin-right: 12rpx;
+  flex-shrink: 0;
+}
+.txt {
+  flex: 1;
+  min-width: 0;
+}
+.retry {
+  color: #e8733b;
+  font-weight: 600;
+  padding-left: 16rpx;
+}

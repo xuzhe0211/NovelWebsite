@@ -1,0 +1,6 @@
+{
+  "component": true,
+  "usingComponents": {
+    "novel-cover": "/components/novel-cover/novel-cover"
+  }
+}

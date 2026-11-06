@@ -1,0 +1,37 @@
+{
+  "name": "novel-server",
+  "version": "1.0.0",
+  "description": "免费小说阅读小程序后端：用户体系、小说 API、每周爬虫",
+  "type": "module",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "node --watch app.js",
+    "init-db": "node scripts/init-db.js",
+    "verify": "node scripts/verify.js",
+    "db:check": "node scripts/check-db.js",
+    "db:reset": "node scripts/reset-novel.js",
+    "smoke": "node scripts/smoke-api.js",
+    "crawl": "node services/scraper/run.js",
+    "crawl:fast": "node services/scraper/fast.js",
+    "crawl:scan": "node services/scraper/scan.js",
+    "probe": "node services/scraper/probe.js",
+    "import-html": "node services/scraper/import-html.js",
+    "postinstall": "node -e \"console.log('提示: 首次需运行 npx playwright install chromium 安装浏览器')\""
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "mysql2": "^3.11.0",
+    "node-cron": "^3.0.3",
+    "opencc-js": "^1.0.5",
+    "pino": "^9.3.2",
+    "playwright": "^1.47.0",
+    "playwright-extra": "^4.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "sequelize": "^6.37.3",
+    "sharp": "^0.35.5"
+  }
+}

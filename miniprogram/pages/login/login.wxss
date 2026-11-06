@@ -1,0 +1,320 @@
+.login {
+  min-height: 100vh;
+  padding: 96rpx 48rpx 60rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-sizing: border-box;
+}
+
+.brand {
+  text-align: center;
+  margin-bottom: 64rpx;
+}
+.logo {
+  width: 132rpx;
+  height: 132rpx;
+  margin: 0 auto;
+  border-radius: 36rpx;
+  background: linear-gradient(135deg, #ff9a5c, #e8733b);
+  color: #fff;
+  font-size: 60rpx;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 16rpx 32rpx rgba(232, 115, 59, 0.28);
+}
+.name {
+  font-size: 44rpx;
+  font-weight: 800;
+  margin-top: 28rpx;
+  color: #1f2329;
+}
+.slogan {
+  font-size: 25rpx;
+  color: #9aa0a6;
+  margin-top: 14rpx;
+}
+
+.card {
+  width: 100%;
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 32rpx;
+  box-shadow: 0 8rpx 28rpx rgba(17, 24, 39, 0.05);
+}
+
+.perks {
+  margin-bottom: 48rpx;
+}
+.perk {
+  display: flex;
+  align-items: center;
+  padding: 12rpx 0;
+}
+.perk-dot {
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 50%;
+  background: #f0a06a;
+  margin-right: 18rpx;
+  flex-shrink: 0;
+}
+.perk-text {
+  font-size: 26rpx;
+  color: #61666d;
+}
+
+.login-btn {
+  width: 100%;
+  height: 96rpx;
+  line-height: 96rpx;
+  border-radius: 48rpx;
+  background: linear-gradient(135deg, #ff9457, #e8733b);
+  color: #fff;
+  font-size: 31rpx;
+  font-weight: 600;
+  box-shadow: 0 12rpx 28rpx rgba(232, 115, 59, 0.3);
+}
+.login-btn.disabled {
+  background: #f2b89b;
+  box-shadow: none;
+}
+
+.agree {
+  display: flex;
+  align-items: flex-start;
+  margin-top: 28rpx;
+  padding: 0 8rpx;
+}
+.checkbox {
+  width: 32rpx;
+  height: 32rpx;
+  border-radius: 50%;
+  border: 2rpx solid #c9cdd4;
+  margin-right: 12rpx;
+  margin-top: 4rpx;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.checkbox.checked {
+  background: #e8733b;
+  border-color: #e8733b;
+}
+.tick {
+  color: #fff;
+  font-size: 20rpx;
+  line-height: 1;
+}
+.agree-text {
+  flex: 1;
+  font-size: 22rpx;
+  color: #8a8f99;
+  line-height: 1.6;
+}
+.link {
+  color: #e8733b;
+}
+
+.user-card {
+  margin-bottom: 24rpx;
+}
+.user-row {
+  display: flex;
+  align-items: center;
+}
+.avatar {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 50%;
+  background: #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+/* 头像按钮（open-type=chooseAvatar） */
+.avatar-btn {
+  position: relative;
+  width: 96rpx;
+  height: 96rpx;
+  margin: 0;
+  padding: 0;
+  line-height: 1;
+  border-radius: 50%;
+  background: #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+  flex-shrink: 0;
+}
+.avatar-btn::after {
+  border: none;
+}
+.avatar-cam {
+  position: absolute;
+  right: -4rpx;
+  bottom: -2rpx;
+  width: 34rpx;
+  height: 34rpx;
+  line-height: 34rpx;
+  text-align: center;
+  border-radius: 50%;
+  background: #e8733b;
+  color: #fff;
+  font-size: 16rpx;
+  border: 3rpx solid #fff;
+  box-sizing: border-box;
+}
+.avatar-img {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 50%;
+}
+.avatar-text {
+  font-size: 38rpx;
+  font-weight: 700;
+  color: #e8733b;
+}
+.user-info {
+  flex: 1;
+  min-width: 0;
+  margin-left: 20rpx;
+}
+.user-nick {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #1f2329;
+}
+.user-sub {
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  color: #9aa0a6;
+}
+.ok-tag {
+  flex-shrink: 0;
+  padding: 6rpx 16rpx;
+  border-radius: 20rpx;
+  background: #eaf7ee;
+  color: #3a9d5d;
+  font-size: 21rpx;
+}
+.user-actions {
+  display: flex;
+  margin-top: 32rpx;
+}
+.ghost-btn,
+.danger-btn {
+  flex: 1;
+  height: 84rpx;
+  line-height: 84rpx;
+  text-align: center;
+  border-radius: 42rpx;
+  font-size: 28rpx;
+}
+.ghost-btn {
+  background: #f5f6f8;
+  color: #61666d;
+  margin-right: 20rpx;
+}
+.danger-btn {
+  background: #fff1e8;
+  color: #e8733b;
+  font-weight: 600;
+}
+
+.note {
+  margin-top: 56rpx;
+  font-size: 21rpx;
+  color: #c3c7cf;
+  text-align: center;
+  line-height: 1.7;
+}
+
+/* 昵称编辑 */
+.nick-row {
+  display: flex;
+  align-items: center;
+  margin-top: 28rpx;
+  padding-top: 24rpx;
+  border-top: 1rpx solid #f2f3f5;
+}
+.nick-label {
+  flex-shrink: 0;
+  font-size: 26rpx;
+  color: #61666d;
+  margin-right: 20rpx;
+}
+.nick-input {
+  flex: 1;
+  min-width: 0;
+  text-align: right;
+  font-size: 26rpx;
+  color: #1f2329;
+}
+.nick-ph {
+  color: #c3c7cf;
+}
+.hint {
+  margin-top: 14rpx;
+  font-size: 20rpx;
+  color: #b6bbc2;
+  line-height: 1.6;
+}
+
+/* 本地体验入口 */
+.sub-login {
+  margin-top: 28rpx;
+  padding: 8rpx 0;
+  font-size: 25rpx;
+  color: #8a8f99;
+  text-align: center;
+  text-decoration: underline;
+}
+
+/* 登录失败提示 */
+.error-box {
+  width: 100%;
+  margin-top: 28rpx;
+  padding: 22rpx 26rpx;
+  border-radius: 16rpx;
+  background: #fff4f2;
+  border: 1rpx solid #ffdcd6;
+  box-sizing: border-box;
+}
+.error-title {
+  font-size: 25rpx;
+  font-weight: 600;
+  color: #c2452d;
+}
+.error-msg {
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  color: #a8482f;
+  line-height: 1.6;
+}
+.error-tip {
+  margin-top: 8rpx;
+  font-size: 21rpx;
+  color: #c08a7c;
+  line-height: 1.6;
+}
+
+.demo-note {
+  width: 100%;
+  margin-top: 24rpx;
+  padding: 22rpx 26rpx;
+  border-radius: 16rpx;
+  background: #fff9ee;
+  border: 1rpx solid #ffe6bd;
+  font-size: 22rpx;
+  color: #a97a2c;
+  line-height: 1.7;
+  box-sizing: border-box;
+}

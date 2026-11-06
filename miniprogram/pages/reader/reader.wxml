@@ -1,0 +1,158 @@
+<view
+  class="reader theme-{{theme}} {{pageMode === 'flip' ? 'flip-mode' : ''}}"
+  bindtouchstart="onFlipTouchStart"
+  bindtouchend="onFlipTouchEnd"
+>
+  <!-- 翻页模式：一屏一页，左右点按/滑动翻 -->
+  <block wx:if="{{pageMode === 'flip' && chapter}}">
+    <view class="flip-head ellipsis">{{chapter.title}}</view>
+    <view id="flip-body" class="flip-body">
+      <view class="flip-page turn-{{turning}}" style="font-size:{{fontSize}}rpx;">
+        <text class="flip-line" wx:for="{{pageLines}}" wx:key="id">{{item.text}}</text>
+      </view>
+      <view wx:if="{{!pageLines.length && !loading}}" class="reading-tip">本章暂无正文</view>
+    </view>
+    <view class="flip-foot">
+      <text class="flip-idx">{{pageIndex + 1}} / {{pageCount || 1}}</text>
+      <text class="flip-pct">{{pagePct}}%</text>
+    </view>
+    <view class="flip-tap flip-tap-left" bindtap="prevPage"></view>
+    <view class="flip-tap flip-tap-right" bindtap="nextPage"></view>
+  </block>
+
+  <!-- 滚动模式：整章连续排版 -->
+  <view class="reader-inner" wx:if="{{pageMode !== 'flip' && chapter}}">
+    <view class="chap-title">{{chapter.title}}</view>
+    <view id="reader-content" class="content" style="font-size:{{fontSize}}rpx;">
+      <text class="para" wx:for="{{paragraphs}}" wx:key="id" selectable>{{item.text}}</text>
+    </view>
+    <view class="chap-end">— 本章完 —</view>
+    <view class="chap-nav">
+      <view class="nav-btn {{prev ? '' : 'disabled'}}" bindtap="goPrev">上一章</view>
+      <view class="nav-btn {{next ? '' : 'disabled'}}" bindtap="goNext">下一章</view>
+    </view>
+    <view class="chap-hint" wx:if="{{!next}}">
+      已经是最后一章，点底部「补章」可以继续抓取后面的章节
+    </view>
+  </view>
+
+  <view wx:if="{{loading}}" class="reading-tip">加载中…</view>
+  <view wx:if="{{error}}" class="reading-tip">{{error}}</view>
+</view>
+
+<!-- 面板遮罩 -->
+<view wx:if="{{catalogOpen || contOpen}}" class="panel-mask" bindtap="closePanels"></view>
+
+<!-- 目录面板 -->
+<view wx:if="{{catalogOpen}}" class="panel catalog-panel theme-{{theme}}" catchtap="noop">
+  <view class="panel-head">
+    <text class="panel-title">目录</text>
+    <text class="panel-sub" wx:if="{{chapters.length}}">共 {{chapters.length}} 章</text>
+    <text class="panel-close" catchtap="closeCatalog">收起</text>
+  </view>
+  <scroll-view
+    scroll-y
+    class="catalog-list"
+    scroll-into-view="{{catalogInto}}"
+    scroll-with-animation
+    enhanced
+    show-scrollbar="{{false}}"
+  >
+    <view
+      wx:for="{{chapters}}"
+      wx:key="id"
+      id="c-{{item.id}}"
+      class="cat-item {{item.id === chapterId ? 'current' : ''}}"
+      data-id="{{item.id}}"
+      bindtap="onCatalogTap"
+    >
+      <text class="cat-title">{{item.title}}</text>
+      <text class="cat-dot" wx:if="{{item.id === chapterId}}">在读</text>
+    </view>
+    <view wx:if="{{catalogLoading}}" class="panel-tip">正在加载目录…</view>
+    <view wx:elif="{{!chapters.length}}" class="panel-tip">还没有章节，点底部「补章」抓取</view>
+  </scroll-view>
+</view>
+
+<!-- 继续补章面板 -->
+<view wx:if="{{contOpen}}" class="panel cont-panel theme-{{theme}}" catchtap="noop">
+  <view class="panel-head">
+    <text class="panel-title">继续补章</text>
+    <text class="panel-close" catchtap="closeCont">收起</text>
+  </view>
+
+  <view class="cont-status">
+    <block wx:if="{{cont}}">
+      <text class="status-main">已入库 {{cont.importedChapters}} 章</text>
+      <text class="status-sub" wx:if="{{cont.remaining > 0}}">还可补 {{cont.remaining}} 章</text>
+      <text class="status-sub" wx:elif="{{!cont.canContinue && !cont.needUrl}}">这本书暂不支持补章</text>
+    </block>
+    <text class="status-sub" wx:else>正在读取补章信息…</text>
+  </view>
+
+  <view class="batch-row">
+    <text class="batch-label">本次抓取</text>
+    <view class="batch-opts">
+      <view
+        wx:for="{{batchOptions}}"
+        wx:key="*this"
+        class="batch {{contBatch === item ? 'active' : ''}} {{contBusy ? 'disabled' : ''}}"
+        data-n="{{item}}"
+        bindtap="chooseBatch"
+      >{{item}} 章</view>
+    </view>
+  </view>
+
+  <view class="panel-note" wx:if="{{cont && cont.needUrl}}">
+    这本书缺少源站链接，点「开始补章」后粘贴一次即可
+  </view>
+
+  <view class="cont-bar-wrap" wx:if="{{contBusy}}">
+    <view class="cont-bar"><view class="cont-bar-in" style="width:{{contProgress}}%"></view></view>
+    <text class="cont-stage">{{contStage}} {{contProgress}}%</text>
+  </view>
+  <view class="panel-note" wx:if="{{contMsg && !contBusy}}">{{contMsg}}</view>
+
+  <view class="act {{contBusy ? 'disabled' : ''}}" bindtap="startContinue">
+    {{contBusy ? '补章中…' : '开始补章'}}
+  </view>
+</view>
+
+<view class="toolbar theme-{{theme}}">
+  <view class="tool" bindtap="openCatalog">目录</view>
+  <view class="tool {{prev ? '' : 'disabled'}}" bindtap="goPrev">上一章</view>
+  <view class="tool accent" bindtap="openCont">补章</view>
+  <view class="tool {{next ? '' : 'disabled'}}" bindtap="goNext">下一章</view>
+  <view class="tool" bindtap="toggleSettings">设置</view>
+</view>
+
+<view wx:if="{{settingsOpen}}" class="settings-panel theme-{{theme}}">
+  <view class="set-row">
+    <text class="set-label">阅读方式</text>
+    <view class="mode-ctrl">
+      <view
+        wx:for="{{modes}}"
+        wx:key="key"
+        class="mode-btn {{pageMode === item.key ? 'active' : ''}}"
+        data-mode="{{item.key}}"
+        bindtap="changeMode"
+      >{{item.label}}</view>
+    </view>
+  </view>
+  <view class="set-row">
+    <text class="set-label">字号</text>
+    <view class="font-ctrl">
+      <view class="fbtn" data-delta="-2" bindtap="changeFont">A−</view>
+      <text class="fs">{{fontSize}}</text>
+      <view class="fbtn" data-delta="2" bindtap="changeFont">A+</view>
+    </view>
+  </view>
+  <view class="set-row">
+    <text class="set-label">背景</text>
+    <view class="theme-ctrl">
+      <view wx:for="{{themes}}" wx:key="key"
+            class="tdot theme-dot-{{item.key}} {{theme === item.key ? 'active' : ''}}"
+            data-theme="{{item.key}}" bindtap="changeTheme">{{item.label}}</view>
+    </view>
+  </view>
+</view>

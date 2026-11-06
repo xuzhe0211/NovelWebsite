@@ -1,0 +1,6 @@
+{
+  "usingComponents": {
+    "demo-tip": "/components/demo-tip/demo-tip"
+  },
+  "navigationBarTitleText": "我的"
+}

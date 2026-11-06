@@ -1,0 +1,5 @@
+<view wx:if="{{show}}" class="demo-tip">
+  <view class="dot"></view>
+  <text class="txt">{{text}}</text>
+  <text class="retry" bindtap="onRetry">重试</text>
+</view>

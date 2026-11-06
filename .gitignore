@@ -1,0 +1,20 @@
+# 依赖
+node_modules/
+
+# 环境变量
+.env
+
+# 日志与运行产物
+server/logs/
+*.log
+server/probe.html
+server/.playwright-profile/
+server/public/uploads/
+server/saved-html/
+
+# 小程序
+miniprogram/miniprogram_npm/
+
+# 系统
+.DS_Store
+.workbuddy

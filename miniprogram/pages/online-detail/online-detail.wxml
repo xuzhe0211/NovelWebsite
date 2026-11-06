@@ -1,0 +1,90 @@
+<view class="page">
+  <view wx:if="{{loading}}" class="loading-tip">正在解析站点信息…</view>
+
+  <block wx:elif="{{error}}">
+    <empty-state text="{{error}}" />
+    <view class="retry-btn" bindtap="retry">重新解析</view>
+  </block>
+
+  <block wx:else>
+    <view class="hero">
+      <novel-cover
+        src="{{detail.coverUrl}}"
+        title="{{detail.title}}"
+        author="{{detail.author}}"
+        category="{{detail.category}}"
+        size="{{200}}"
+        radius="{{14}}"
+      />
+      <view class="hero-info">
+        <view class="hero-title">{{detail.title}}</view>
+        <view class="hero-meta">
+          <text>{{detail.author || '佚名'}}</text>
+          <text wx:if="{{detail.category}}"> · {{detail.category}}</text>
+        </view>
+        <view class="hero-tags">
+          <text class="tag">{{detail.isCompleted ? '完结' : '连载'}}</text>
+          <text class="tag" wx:if="{{detail.sourceName}}">{{detail.sourceName}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="stats">
+      <view class="stat">
+        <text class="stat-num">{{detail.freeChapters}}</text>
+        <text class="stat-label">可抓章节</text>
+      </view>
+      <view class="stat">
+        <text class="stat-num">{{detail.importedChapters || 0}}</text>
+        <text class="stat-label">已入库</text>
+      </view>
+      <view class="stat">
+        <text class="stat-num">{{detail.chapterCount}}</text>
+        <text class="stat-label">源站章节</text>
+      </view>
+    </view>
+
+    <view class="card">
+      <view class="card-title">作品简介</view>
+      <view class="intro {{introExpanded ? '' : 'clamp'}}">{{detail.intro || '源站没有提供简介'}}</view>
+      <text wx:if="{{detail.intro}}" class="expand" bindtap="toggleIntro">
+        {{introExpanded ? '收起' : '展开全部'}}
+      </text>
+    </view>
+
+    <view class="card notes">
+      <view class="note-line">· 内容抓取自公开网页，存入本站书库供阅读</view>
+      <view class="note-line">· 「拉取到本站」只入库，不加入书架</view>
+      <view class="note-line">· 「加入书架」会同时入库并同步阅读进度</view>
+      <view class="note-line" wx:if="{{detail.freeChapters && detail.chapterCount > detail.freeChapters}}">
+        · 源站仅放出前 {{detail.freeChapters}} 章免费正文，其余需在源站阅读
+      </view>
+    </view>
+
+    <view class="footer-space"></view>
+
+    <view class="footer">
+      <view class="progress-box" wx:if="{{importing}}">
+        <view class="bar"><view class="bar-in" style="width:{{progress}}%"></view></view>
+        <text class="stage">{{stage}} {{progress}}%</text>
+      </view>
+      <view class="error-text" wx:elif="{{taskError}}">{{taskError}}</view>
+      <block wx:else>
+        <!-- 已在库：阅读 +（可抓时）继续补章 -->
+        <block wx:if="{{detail.inLibrary}}">
+          <view class="btn ghost" wx:if="{{detail.canImport}}" data-action="library" bindtap="onPull">继续补章</view>
+          <view class="btn primary" bindtap="onOpen">阅读 · {{detail.importedChapters}}章</view>
+        </block>
+        <!-- 正文不可读（源站需登录 / VIP） -->
+        <view class="unavailable" wx:elif="{{!detail.canImport}}">
+          该书正文需在源站登录后阅读，暂不支持拉取
+        </view>
+        <!-- 可拉取 -->
+        <block wx:else>
+          <view class="btn ghost" data-action="library" bindtap="onPull">拉取到本站</view>
+          <view class="btn primary" data-action="shelf" bindtap="onPull">加入书架</view>
+        </block>
+      </block>
+    </view>
+  </block>
+</view>

@@ -1,0 +1,32 @@
+.completed {
+  padding: 24rpx 24rpx 40rpx;
+}
+
+.head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 8rpx 4rpx 20rpx;
+}
+.head-title {
+  font-size: 38rpx;
+  font-weight: 800;
+  color: #1f2329;
+}
+.head-sub {
+  margin-top: 8rpx;
+  font-size: 23rpx;
+  color: #9aa0a6;
+}
+.head-count {
+  font-size: 24rpx;
+  color: #e8733b;
+  background: #fff1e8;
+  padding: 6rpx 18rpx;
+  border-radius: 20rpx;
+}
+
+.list {
+  padding: 0 24rpx;
+  margin-top: 20rpx;
+}

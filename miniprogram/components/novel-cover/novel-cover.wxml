@@ -1,0 +1,23 @@
+<view class="nc" style="{{rootStyle}}">
+  <view class="nc-mark" style="{{markStyle}}">{{mark}}</view>
+  <view class="nc-glow"></view>
+
+  <view class="nc-body" style="padding:{{innerPad}}rpx;">
+    <view class="nc-tag" wx:if="{{tag}}" style="{{tagStyle}}">{{tag}}</view>
+    <view class="nc-foot">
+      <view class="nc-title" style="{{titleStyle}}">{{displayTitle}}</view>
+      <view wx:if="{{hasAuthor}}" class="nc-author" style="{{authorStyle}}">{{author}}</view>
+    </view>
+  </view>
+
+  <image
+    wx:if="{{realSrc && !failed}}"
+    class="nc-img"
+    src="{{realSrc}}"
+    mode="aspectFill"
+    lazy-load="{{lazy}}"
+    binderror="onError"
+  />
+
+  <view wx:if="{{badge}}" class="nc-badge">{{badge}}</view>
+</view>

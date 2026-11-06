@@ -1,0 +1,40 @@
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 110rpx 0;
+}
+.icon-wrap {
+  width: 148rpx;
+  height: 148rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #fff3ea, #ffe7d6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.icon {
+  font-size: 62rpx;
+  opacity: 0.85;
+}
+.text {
+  margin-top: 26rpx;
+  color: #8a8f99;
+  font-size: 26rpx;
+  text-align: center;
+  line-height: 1.6;
+  padding: 0 60rpx;
+}
+.btn {
+  margin-top: 36rpx;
+  padding: 16rpx 54rpx;
+  background: linear-gradient(135deg, #ff9457, #e8733b);
+  color: #fff;
+  border-radius: 44rpx;
+  font-size: 26rpx;
+  font-weight: 600;
+  box-shadow: 0 8rpx 20rpx rgba(232, 115, 59, 0.26);
+}
+.btn-hover {
+  opacity: 0.85;
+}

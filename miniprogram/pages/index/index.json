@@ -1,0 +1,9 @@
+{
+  "usingComponents": {
+    "novel-card": "/components/novel-card/novel-card",
+    "empty-state": "/components/empty-state/empty-state",
+    "demo-tip": "/components/demo-tip/demo-tip"
+  },
+  "enablePullDownRefresh": true,
+  "navigationBarTitleText": "免费小说"
+}

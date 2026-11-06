@@ -1,0 +1,107 @@
+.novel-card {
+  display: flex;
+  align-items: flex-start;
+  padding: 22rpx 0;
+  border-bottom: 1rpx solid #f2f3f5;
+  position: relative;
+}
+.novel-card:last-child {
+  border-bottom: none;
+}
+.novel-card-hover {
+  background: #fafafa;
+}
+.rank {
+  width: 46rpx;
+  flex-shrink: 0;
+  text-align: center;
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #c3c7cf;
+  line-height: 160rpx;
+}
+.rank.top {
+  color: #e8733b;
+}
+.cover-wrap {
+  position: relative;
+  width: 120rpx;
+  height: 160rpx;
+  flex-shrink: 0;
+  margin-right: 20rpx;
+}
+.cover {
+  width: 120rpx;
+  height: 160rpx;
+  border-radius: 10rpx;
+  background: #eceef1;
+  display: block;
+}
+.cover-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f8d6bf, #e8a87c);
+  color: #fff;
+  font-size: 46rpx;
+  font-weight: 700;
+}
+.badge {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  background: rgba(232, 115, 59, 0.92);
+  color: #fff;
+  font-size: 18rpx;
+  padding: 2rpx 10rpx;
+  border-radius: 10rpx 0 10rpx 0;
+}
+.info {
+  flex: 1;
+  min-width: 0;
+  padding-top: 4rpx;
+}
+.title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #1f2329;
+  line-height: 1.3;
+}
+.meta {
+  font-size: 22rpx;
+  color: #9aa0a6;
+  margin-top: 10rpx;
+}
+.meta-tag {
+  display: inline-block;
+  margin-left: 10rpx;
+  padding: 0 8rpx;
+  line-height: 28rpx;
+  border-radius: 6rpx;
+  background: #fff1e8;
+  color: #e8733b;
+  font-size: 18rpx;
+}
+.intro {
+  font-size: 24rpx;
+  color: #7d838b;
+  margin-top: 10rpx;
+  line-height: 1.55;
+}
+.sub {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 14rpx;
+  font-size: 22rpx;
+  color: #a8adb5;
+}
+.sub-chapter {
+  flex: 1;
+  min-width: 0;
+  margin-right: 16rpx;
+}
+.sub-right {
+  flex-shrink: 0;
+  color: #b6bbc2;
+}

@@ -1,0 +1,44 @@
+<view class="category">
+  <scroll-view scroll-x class="cat-scroll" enhanced show-scrollbar="{{false}}">
+    <view class="cat-chip {{activeSlug === '' ? 'active' : ''}}" data-slug="" bindtap="switchCat">全部</view>
+    <view
+      wx:for="{{categories}}"
+      wx:key="id"
+      class="cat-chip {{activeSlug === item.slug ? 'active' : ''}}"
+      data-slug="{{item.slug}}"
+      bindtap="switchCat"
+    >{{item.name}}</view>
+  </scroll-view>
+
+  <view class="result-head">
+    <view class="result-title">{{activeName}}</view>
+    <view class="result-count" wx:if="{{total}}">共 {{total}} 本</view>
+  </view>
+
+  <demo-tip show="{{demoMode}}" bind:retry="retry" />
+
+  <view class="list card" wx:if="{{list.length}}">
+    <novel-card wx:for="{{list}}" wx:key="id" novel="{{item}}" showIntro="{{false}}" />
+  </view>
+
+  <view wx:if="{{loading}}" class="skeleton">
+    <view class="sk-row" wx:for="{{skeleton}}" wx:key="*this">
+      <view class="sk-cover"></view>
+      <view class="sk-lines">
+        <view class="sk-line w60"></view>
+        <view class="sk-line w40"></view>
+        <view class="sk-line w80"></view>
+      </view>
+    </view>
+  </view>
+
+  <empty-state
+    wx:if="{{!loading && !list.length}}"
+    text="{{error || '该分类暂无小说'}}"
+    showButton
+    buttonText="重新加载"
+    bind:button="retry"
+  />
+  <view wx:if="{{loadingMore}}" class="loading-tip">加载更多…</view>
+  <view wx:if="{{!hasMore && list.length}}" class="loading-tip">— 已经到底了 —</view>
+</view>

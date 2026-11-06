@@ -1,0 +1,7 @@
+<view class="empty-state">
+  <view class="icon-wrap">
+    <text class="icon">📚</text>
+  </view>
+  <view class="text">{{text}}</view>
+  <view wx:if="{{showButton}}" class="btn" hover-class="btn-hover" bindtap="onButton">{{buttonText}}</view>
+</view>

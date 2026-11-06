@@ -1,0 +1,151 @@
+<view class="search">
+  <view class="search-bar">
+    <view class="search-icon"></view>
+    <input
+      class="input"
+      value="{{keyword}}"
+      placeholder="{{mode === 'online' ? '书名 / 作者，或粘贴书籍链接' : '输入书名或作者'}}"
+      placeholder-class="input-placeholder"
+      confirm-type="search"
+      focus
+      bindinput="onInput"
+      bindconfirm="doSearch"
+    />
+    <text wx:if="{{keyword}}" class="clear" bindtap="clear">✕</text>
+    <text class="btn" bindtap="doSearch">搜索</text>
+  </view>
+
+  <!-- 搜索范围切换 -->
+  <view class="mode-tabs">
+    <view class="mode-tab {{mode === 'local' ? 'on' : ''}}" data-mode="local" bindtap="switchMode">
+      站内书库
+    </view>
+    <view class="mode-tab {{mode === 'online' ? 'on' : ''}}" data-mode="online" bindtap="switchMode">
+      全网搜索
+      <text class="mode-badge">免费</text>
+    </view>
+  </view>
+
+  <!-- 搜索历史 / 热门 -->
+  <block wx:if="{{(mode === 'local' && !searched) || (mode === 'online' && !onlineSearched)}}">
+    <view class="block" wx:if="{{history.length}}">
+      <view class="block-head">
+        <text class="block-title">搜索历史</text>
+        <text class="block-action" bindtap="clearHistory">清空</text>
+      </view>
+      <view class="word-wrap">
+        <view class="word" wx:for="{{history}}" wx:key="*this" data-word="{{item}}" bindtap="tapWord">{{item}}</view>
+      </view>
+    </view>
+
+    <view class="block">
+      <view class="block-head">
+        <text class="block-title">试试搜索</text>
+      </view>
+      <view class="word-wrap">
+        <view class="word" wx:for="{{hotWords}}" wx:key="*this" data-word="{{item}}" bindtap="tapWord">{{item}}</view>
+      </view>
+    </view>
+
+    <view class="online-hint" wx:if="{{mode === 'online'}}">
+      <text class="hint-title">全网搜索怎么用</text>
+      <text class="hint-line">1. 输入书名或作者，从免费小说站实时检索</text>
+      <text class="hint-line">2. 点「加入书架」，服务端抓取正文并存入书库</text>
+      <text class="hint-line">3. 抓取完成后自动进书架，可直接阅读、离线缓存</text>
+      <text class="hint-line">4. 也可以直接粘贴其他小说站的书籍链接，自动解析并拉取</text>
+    </view>
+  </block>
+
+  <!-- 站内结果 -->
+  <block wx:if="{{mode === 'local'}}">
+    <view class="list card" wx:if="{{results.length}}">
+      <novel-card wx:for="{{results}}" wx:key="id" novel="{{item}}" showIntro="{{false}}" />
+    </view>
+    <empty-state wx:if="{{searched && !loading && !results.length}}" text="{{error || '书库里没有这本书，试试「全网搜索」'}}" />
+    <view wx:if="{{loading}}" class="loading-tip">搜索中…</view>
+  </block>
+
+  <!-- 全网结果 -->
+  <block wx:if="{{mode === 'online'}}">
+    <view class="online-head" wx:if="{{onlineList.length}}">
+      <text class="online-count">共 {{onlineTotal}} 本</text>
+      <text class="online-src">来源：七猫免费小说</text>
+    </view>
+
+    <view class="online-list" wx:if="{{onlineList.length}}">
+      <view class="online-card" wx:for="{{onlineList}}" wx:key="bookId" data-index="{{index}}" bindtap="openItem" hover-class="online-card-hover">
+        <view class="oc-top">
+          <novel-cover
+            src="{{item.coverUrl}}"
+            title="{{item.title}}"
+            author="{{item.author}}"
+            category="{{item.category}}"
+            size="{{140}}"
+            radius="{{12}}"
+          />
+          <view class="oc-info">
+            <view class="oc-title-row">
+              <text class="oc-title">{{item.title}}</text>
+              <text class="oc-tag {{item.isCompleted ? 'done' : ''}}">{{item.isCompleted ? '完结' : '连载'}}</text>
+            </view>
+            <view class="oc-meta">
+              <text>{{item.author}}</text>
+              <text wx:if="{{item.category}}"> · {{item.category}}</text>
+              <text wx:if="{{item.wordText}}"> · {{item.wordText}}</text>
+            </view>
+            <view class="oc-intro ellipsis-2">{{item.intro}}</view>
+          </view>
+        </view>
+
+        <view class="oc-bottom">
+          <text class="oc-source">{{item.sourceName}}</text>
+
+          <!-- 已在库 -->
+          <view class="oc-btn ghost" wx:if="{{item.inLibrary && !item.importState.progress}}" data-bookid="{{item.bookId}}" catchtap="onImport">
+            阅读 · {{item.importedChapters}}章
+          </view>
+
+          <!-- 导入中 -->
+          <view class="oc-progress" wx:elif="{{!item.importState.done && item.importState.progress > 0}}">
+            <view class="oc-bar"><view class="oc-bar-in" style="width:{{item.importState.progress}}%"></view></view>
+            <text class="oc-stage">{{item.importState.stage}} {{item.importState.progress}}%</text>
+          </view>
+
+          <!-- 导入完成 -->
+          <view
+            class="oc-btn done"
+            wx:elif="{{item.importState.done && !item.importState.error}}"
+            data-bookid="{{item.bookId}}"
+            catchtap="onImport"
+          >开始阅读</view>
+
+          <!-- 失败 -->
+          <view
+            class="oc-btn"
+            wx:elif="{{item.importState.error}}"
+            data-bookid="{{item.bookId}}"
+            catchtap="onImport"
+          >重试</view>
+
+          <!-- 可导入 -->
+          <view class="oc-btn" wx:else data-bookid="{{item.bookId}}" data-title="{{item.title}}" catchtap="onImport">
+            加入书架
+          </view>
+        </view>
+
+        <view class="oc-error" wx:if="{{item.importState.error}}">{{item.importState.error}}</view>
+      </view>
+
+      <view class="online-more" wx:if="{{onlineHasMore}}">
+        {{onlineLoading ? '加载中…' : '上拉加载更多'}}
+      </view>
+      <view class="online-more" wx:elif="{{onlineList.length}}">没有更多了</view>
+    </view>
+
+    <empty-state
+      wx:if="{{onlineSearched && !onlineLoading && !onlineList.length}}"
+      text="{{onlineError || '全网没有找到这本书，换个书名试试'}}"
+    />
+    <view wx:if="{{onlineLoading && !onlineList.length}}" class="loading-tip">正在联网检索…</view>
+  </block>
+</view>

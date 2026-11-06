@@ -1,0 +1,50 @@
+.category {
+  padding: 16rpx 24rpx 40rpx;
+}
+
+.cat-scroll {
+  white-space: nowrap;
+  padding: 12rpx 0 8rpx;
+}
+.cat-scroll .chip,
+.cat-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 60rpx;
+  padding: 0 28rpx;
+  margin-right: 16rpx;
+  border-radius: 30rpx;
+  background: #fff;
+  border: 1rpx solid #f0f1f3;
+  color: #61666d;
+  font-size: 26rpx;
+}
+.cat-chip.active {
+  background: linear-gradient(135deg, #ff9457, #e8733b);
+  border-color: transparent;
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 6rpx 16rpx rgba(232, 115, 59, 0.28);
+}
+
+.result-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 24rpx 4rpx 8rpx;
+}
+.result-title {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #1f2329;
+}
+.result-count {
+  font-size: 23rpx;
+  color: #9aa0a6;
+}
+
+.list {
+  padding: 0 24rpx;
+  margin-top: 20rpx;
+}

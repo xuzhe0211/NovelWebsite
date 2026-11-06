@@ -1,0 +1,7 @@
+{
+  "usingComponents": {
+    "novel-card": "/components/novel-card/novel-card",
+    "empty-state": "/components/empty-state/empty-state"
+  },
+  "navigationBarTitleText": "搜索"
+}

@@ -1,0 +1,66 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/ranking/ranking",
+    "pages/completed/completed",
+    "pages/category/category",
+    "pages/mine/mine",
+    "pages/bookshelf/bookshelf",
+    "pages/novel-detail/novel-detail",
+    "pages/online-detail/online-detail",
+    "pages/reader/reader",
+    "pages/search/search",
+    "pages/login/login"
+  ],
+  "window": {
+    "navigationBarBackgroundColor": "#ffffff",
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "免费小说",
+    "backgroundColor": "#f5f6f8",
+    "backgroundTextStyle": "dark"
+  },
+  "tabBar": {
+    "color": "#9aa0a6",
+    "selectedColor": "#e8733b",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页",
+        "iconPath": "assets/tabbar/home.png",
+        "selectedIconPath": "assets/tabbar/home-active.png"
+      },
+      {
+        "pagePath": "pages/ranking/ranking",
+        "text": "排行",
+        "iconPath": "assets/tabbar/ranking.png",
+        "selectedIconPath": "assets/tabbar/ranking-active.png"
+      },
+      {
+        "pagePath": "pages/completed/completed",
+        "text": "完本",
+        "iconPath": "assets/tabbar/completed.png",
+        "selectedIconPath": "assets/tabbar/completed-active.png"
+      },
+      {
+        "pagePath": "pages/category/category",
+        "text": "分类",
+        "iconPath": "assets/tabbar/category.png",
+        "selectedIconPath": "assets/tabbar/category-active.png"
+      },
+      {
+        "pagePath": "pages/mine/mine",
+        "text": "我的",
+        "iconPath": "assets/tabbar/mine.png",
+        "selectedIconPath": "assets/tabbar/mine-active.png"
+      }
+    ]
+  },
+  "usingComponents": {
+    "novel-cover": "/components/novel-cover/novel-cover"
+  },
+  "sitemapLocation": "sitemap.json",
+  "lazyCodeLoading": "requiredComponents",
+  "style": "v2"
+}

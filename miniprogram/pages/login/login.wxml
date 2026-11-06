@@ -1,0 +1,101 @@
+<view class="login">
+  <view class="brand">
+    <view class="logo">书</view>
+    <view class="name">免费小说</view>
+    <view class="slogan">好书免费读，进度不掉线</view>
+  </view>
+
+  <!-- 已登录 -->
+  <block wx:if="{{logged}}">
+    <view class="card user-card">
+      <view class="user-row">
+        <button class="avatar-btn" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
+          <image
+            wx:if="{{avatar && !avatarFailed}}"
+            class="avatar-img"
+            src="{{avatar}}"
+            mode="aspectFill"
+            binderror="onAvatarError"
+          />
+          <text wx:else class="avatar-text">{{initial}}</text>
+          <view class="avatar-cam">换</view>
+        </button>
+        <view class="user-info">
+          <view class="user-nick ellipsis">{{nickname}}</view>
+          <view class="user-sub">
+            <block wx:if="{{isDemoUser}}">本地体验账号（未连接服务器）</block>
+            <block wx:else>已登录 · 书架与进度可云端同步</block>
+          </view>
+        </view>
+        <view class="ok-tag">{{isDemoUser ? '体验中' : '已登录'}}</view>
+      </view>
+
+      <view class="nick-row">
+        <text class="nick-label">昵称</text>
+        <input
+          class="nick-input"
+          type="nickname"
+          value="{{nickname}}"
+          placeholder="点击填写昵称"
+          placeholder-class="nick-ph"
+          bindblur="onNicknameChange"
+          bindconfirm="onNicknameChange"
+        />
+      </view>
+      <view class="hint">点击头像可更换；资料保存在本机，登录云端后可同步昵称</view>
+
+      <view class="user-actions">
+        <view class="ghost-btn" bindtap="goBack">返回</view>
+        <view class="danger-btn" bindtap="onLogout">退出登录</view>
+      </view>
+    </view>
+
+    <view wx:if="{{isDemoUser}}" class="demo-note">
+      当前为本地体验账号：书架只保存在这台手机。后端启动后重新登录，即可把书架同步到云端。
+    </view>
+  </block>
+
+  <!-- 未登录 -->
+  <block wx:else>
+    <view class="card perks">
+      <view class="perk">
+        <view class="perk-dot"></view>
+        <text class="perk-text">书架云端同步，换设备不丢书</text>
+      </view>
+      <view class="perk">
+        <view class="perk-dot"></view>
+        <text class="perk-text">自动记录阅读进度，接着上次读</text>
+      </view>
+      <view class="perk">
+        <view class="perk-dot"></view>
+        <text class="perk-text">登录仅用于同步，不获取其他信息</text>
+      </view>
+    </view>
+
+    <button class="login-btn {{agreed ? '' : 'disabled'}}" loading="{{loading}}" bindtap="onLogin">
+      {{loading ? '登录中…' : '微信一键登录'}}
+    </button>
+
+    <view wx:if="{{demoEnabled}}" class="sub-login" bindtap="onDemoLogin">先用本地体验账号（不连服务器）</view>
+
+    <view wx:if="{{error}}" class="error-box">
+      <view class="error-title">登录没有成功</view>
+      <view class="error-msg">{{error}}</view>
+      <view class="error-tip">请确认后端已启动，或在开发者工具中勾选「不校验合法域名」。</view>
+    </view>
+
+    <view class="agree">
+      <view class="checkbox {{agreed ? 'checked' : ''}}" bindtap="toggleAgree">
+        <text wx:if="{{agreed}}" class="tick">✓</text>
+      </view>
+      <view class="agree-text">
+        <text bindtap="toggleAgree">我已阅读并同意</text>
+        <text class="link" data-type="terms" bindtap="showAgreement">《用户协议》</text>
+        <text>与</text>
+        <text class="link" data-type="privacy" bindtap="showAgreement">《隐私政策》</text>
+      </view>
+    </view>
+  </block>
+
+  <view class="note">开发环境：未配置微信 AppSecret 或后端未启动时，会自动使用本地体验登录。</view>
+</view>

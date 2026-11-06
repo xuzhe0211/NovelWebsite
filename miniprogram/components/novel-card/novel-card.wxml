@@ -1,0 +1,26 @@
+<view class="novel-card" hover-class="novel-card-hover" bindtap="onTap">
+  <view class="rank {{rank && rank <= 3 ? 'top' : ''}}" wx:if="{{rank}}">{{rank}}</view>
+  <view class="cover-wrap">
+    <novel-cover
+      src="{{novel.coverUrl}}"
+      title="{{novel.title}}"
+      author="{{novel.author}}"
+      size="{{120}}"
+      radius="{{10}}"
+      badge="{{novel.isCompleted ? '完结' : ''}}"
+    />
+  </view>
+  <view class="info">
+    <view class="title ellipsis">{{novel.title}}</view>
+    <view class="meta ellipsis">
+      <text wx:if="{{novel.author}}">{{novel.author}}</text>
+      <text wx:if="{{novel.category && novel.category.name}}"> · {{novel.category.name}}</text>
+      <text wx:if="{{novel.isCompleted}}" class="meta-tag">完本</text>
+    </view>
+    <view wx:if="{{showIntro && novel.intro}}" class="intro ellipsis-2">{{novel.intro}}</view>
+    <view class="sub" wx:if="{{!showIntro}}">
+      <text class="sub-chapter ellipsis">{{novel.lastChapterTitle || ''}}</text>
+      <text wx:if="{{wordText}}" class="sub-right">{{wordText}}</text>
+    </view>
+  </view>
+</view>

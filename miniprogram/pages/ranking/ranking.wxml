@@ -1,0 +1,70 @@
+<view class="ranking">
+  <view class="seg">
+    <view
+      wx:for="{{tabs}}"
+      wx:key="key"
+      class="seg-item {{type === item.key ? 'active' : ''}}"
+      data-type="{{item.key}}"
+      bindtap="switchType"
+    >{{item.label}}</view>
+  </view>
+
+  <demo-tip show="{{demoMode}}" bind:retry="retry" />
+
+  <view class="tip-line" wx:if="{{tip}}">{{tip}}</view>
+
+  <!-- 前三名 -->
+  <view class="podium" wx:if="{{top3.length}}">
+    <view
+      class="p-item"
+      wx:for="{{top3}}"
+      wx:key="id"
+      data-id="{{item.id}}"
+      hover-class="hover"
+      bindtap="goDetail"
+    >
+      <view class="p-cover-wrap">
+        <novel-cover
+          src="{{item.coverUrl}}"
+          title="{{item.title}}"
+          author="{{item.author}}"
+          category="{{item.category.name}}"
+          size="{{168}}"
+          radius="{{12}}"
+        />
+        <view class="p-badge r{{index + 1}}">{{index + 1}}</view>
+      </view>
+      <view class="p-title ellipsis">{{item.title}}</view>
+      <view class="p-sub ellipsis">{{item.hotText}}人气</view>
+    </view>
+  </view>
+
+  <!-- 4 名之后 -->
+  <view class="list card" wx:if="{{rest.length}}">
+    <novel-card wx:for="{{rest}}" wx:key="id" novel="{{item}}" showIntro="{{false}}" rank="{{item.rank}}" />
+  </view>
+
+  <view class="list card" wx:if="{{top3.length && !rest.length}}">
+    <view class="loading-tip">已展示全部榜单</view>
+  </view>
+
+  <!-- 骨架屏 -->
+  <view wx:if="{{loading}}" class="skeleton">
+    <view class="sk-row" wx:for="{{skeleton}}" wx:key="*this">
+      <view class="sk-cover"></view>
+      <view class="sk-lines">
+        <view class="sk-line w60"></view>
+        <view class="sk-line w40"></view>
+        <view class="sk-line w80"></view>
+      </view>
+    </view>
+  </view>
+
+  <empty-state
+    wx:if="{{!loading && !list.length}}"
+    text="{{error || '暂无排行数据'}}"
+    showButton
+    buttonText="重新加载"
+    bind:button="retry"
+  />
+</view>

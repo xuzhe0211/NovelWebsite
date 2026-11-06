@@ -1,0 +1,112 @@
+<view class="detail" wx:if="{{novel}}">
+  <view class="hero">
+    <view class="hero-cover-wrap">
+      <novel-cover
+        src="{{novel.coverUrl}}"
+        title="{{novel.title}}"
+        author="{{novel.author}}"
+        size="{{190}}"
+        radius="{{14}}"
+      />
+    </view>
+    <view class="hero-info">
+      <view class="title ellipsis-2">{{novel.title}}</view>
+      <view class="author ellipsis">{{novel.author || '佚名'}}</view>
+      <view class="tags">
+        <text wx:if="{{novel.category && novel.category.name}}" class="tag">{{novel.category.name}}</text>
+        <text class="tag {{novel.isCompleted ? 'done' : 'serial'}}">{{novel.isCompleted ? '已完结' : '连载中'}}</text>
+      </view>
+      <view class="stats">
+        <view class="stat-item">
+          <view class="stat-num">{{wordText}}</view>
+          <view class="stat-lab">字数</view>
+        </view>
+        <view class="stat-item">
+          <view class="stat-num">{{chapterCount || chapters.length}} 章</view>
+          <view class="stat-lab">目录</view>
+        </view>
+        <view class="stat-item">
+          <view class="stat-num">{{hotText || '—'}}</view>
+          <view class="stat-lab">人气</view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="actions">
+    <button class="btn primary" bindtap="startRead">
+      {{shelfItem && shelfItem.lastChapterId ? '继续阅读' : '开始阅读'}}
+    </button>
+    <button class="btn {{inShelf ? 'disabled' : ''}}" bindtap="onAddShelf">
+      {{inShelf ? '已在书架' : '加入书架'}}
+    </button>
+  </view>
+
+  <!-- 在线抓取的书：随时再补一批章节 -->
+  <view class="cont" wx:if="{{cont}}">
+    <view class="cont-head">
+      <view class="cont-info">
+        <view class="cont-title">已入库 {{cont.importedChapters}} 章</view>
+        <view class="cont-sub">
+          <block wx:if="{{cont.needUrl}}">补一次源站链接，之后可一键补章</block>
+          <block wx:elif="{{cont.remaining > 0}}">还可补 {{cont.remaining}} 章</block>
+          <block wx:else>{{cont.sourceName ? cont.sourceName + ' · ' : ''}}每次整批抓取</block>
+        </view>
+      </view>
+      <view class="cont-btn {{contBusy ? 'busy' : ''}}" bindtap="onContinue">
+        {{contBusy ? '补章中…' : (cont.needUrl ? '粘贴链接补章' : '继续补章')}}
+      </view>
+    </view>
+
+    <!-- 本次抓取多少章 -->
+    <view class="batch-row">
+      <text class="batch-label">本次抓取</text>
+      <view class="batch-opts">
+        <view
+          wx:for="{{batchOptions}}"
+          wx:key="*this"
+          class="batch {{contBatch === item ? 'active' : ''}} {{contBusy ? 'disabled' : ''}}"
+          data-n="{{item}}"
+          bindtap="chooseBatch"
+        >{{item}} 章</view>
+      </view>
+    </view>
+
+    <view class="batch-tip" wx:if="{{contBatch >= 100}}">大批次遇到站点限流会自动放慢，可能需要几分钟</view>
+
+    <view class="cont-bar-wrap" wx:if="{{contBusy}}">
+      <view class="cont-bar"><view class="cont-bar-in" style="width:{{contProgress}}%"></view></view>
+      <text class="cont-stage">{{contStage}} {{contProgress}}%</text>
+    </view>
+    <view class="cont-msg" wx:if="{{contMsg && !contBusy}}">{{contMsg}}</view>
+  </view>
+
+  <view class="intro card">
+    <view class="intro-title">作品简介</view>
+    <view class="intro-text">{{novel.intro || '暂无简介'}}</view>
+  </view>
+
+  <view class="catalog card">
+    <view class="catalog-head">
+      <text class="catalog-title">目录</text>
+      <view class="catalog-right">
+        <text class="catalog-count">共 {{chapters.length}} 章</text>
+        <text class="catalog-refresh" bindtap="onRefreshTap">刷新</text>
+      </view>
+    </view>
+    <scroll-view scroll-y class="chapter-scroll" enhanced show-scrollbar="{{false}}">
+      <view class="chapter-item" wx:for="{{chapters}}" wx:key="id" data-cid="{{item.id}}" hover-class="chapter-hover" bindtap="onChapterTap">
+        <text class="chapter-title ellipsis">{{item.title}}</text>
+        <text class="chapter-arrow">›</text>
+      </view>
+      <view wx:if="{{!chapters.length}}" class="loading-tip">暂无章节，请先运行爬虫抓取</view>
+    </scroll-view>
+  </view>
+</view>
+
+<view wx:if="{{loading}}" class="page-loading">
+  <view class="loading-tip">加载中…</view>
+</view>
+<view wx:if="{{error}}" class="page-loading">
+  <view class="loading-tip">{{error}}</view>
+</view>

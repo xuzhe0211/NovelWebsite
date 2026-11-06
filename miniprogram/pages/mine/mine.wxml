@@ -1,0 +1,91 @@
+<view class="mine">
+  <view class="hero">
+    <view class="user" bindtap="goLogin">
+      <view class="avatar">
+        <image
+          wx:if="{{avatar && !avatarFailed}}"
+          class="avatar-img"
+          src="{{avatar}}"
+          mode="aspectFill"
+          binderror="onAvatarError"
+        />
+        <text wx:else class="avatar-text">{{initial}}</text>
+      </view>
+      <view class="user-info">
+        <view class="nick ellipsis">{{nickname}}</view>
+        <view class="sub ellipsis">
+          <block wx:if="{{logged}}">已登录{{isDemoUser ? '（本地体验）' : ''}} · 云端同步书架</block>
+          <block wx:else>登录后同步书架与阅读进度</block>
+        </view>
+      </view>
+      <view wx:if="{{!logged}}" class="login-mini" hover-class="hover" catchtap="goLogin">登录</view>
+      <view wx:else class="edit-mini">编辑资料 ›</view>
+    </view>
+
+    <view class="stats">
+      <view class="stat" bindtap="goShelf">
+        <view class="stat-num">{{shelfCount}}</view>
+        <view class="stat-lab">书架藏书</view>
+      </view>
+      <view class="stat-divider"></view>
+      <view class="stat">
+        <view class="stat-num">{{recent ? recent.position : 0}}<text class="unit">%</text></view>
+        <view class="stat-lab">最近进度</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="body">
+    <demo-tip show="{{demoMode}}" text="演示模式：书架数据仅保存在本机" />
+
+    <!-- 最近在读 -->
+    <view class="recent card" wx:if="{{recent}}">
+      <view class="recent-head">
+        <view class="section-title">最近在读</view>
+        <view class="section-more" bindtap="continueRead">继续阅读 ›</view>
+      </view>
+      <view class="recent-body" bindtap="continueRead">
+        <view class="r-cover">
+          <novel-cover
+            src="{{recent.novel.coverUrl}}"
+            title="{{recent.novel.title}}"
+            author="{{recent.novel.author}}"
+            size="{{104}}"
+            radius="{{10}}"
+          />
+        </view>
+        <view class="r-info">
+          <view class="r-title ellipsis">{{recent.novel.title}}</view>
+          <view class="r-chapter ellipsis">{{recent.lastChapterTitle || '未开始阅读'}}</view>
+          <view class="r-bar">
+            <view class="r-bar-inner" style="width:{{recent.position}}%"></view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 功能入口 -->
+    <view class="menu card">
+      <view class="menu-item" hover-class="menu-hover" bindtap="goShelf">
+        <text class="menu-label">我的书架</text>
+        <text class="menu-value">{{shelfCount}} 本 ›</text>
+      </view>
+      <view class="menu-item" hover-class="menu-hover" bindtap="goSearch">
+        <text class="menu-label">搜索小说</text>
+        <text class="menu-value">›</text>
+      </view>
+      <view class="menu-item" hover-class="menu-hover" bindtap="clearCache">
+        <text class="menu-label">清除缓存</text>
+        <text class="menu-value">›</text>
+      </view>
+      <view class="menu-item" hover-class="menu-hover" bindtap="about">
+        <text class="menu-label">关于</text>
+        <text class="menu-value">{{version}} ›</text>
+      </view>
+    </view>
+
+    <view wx:if="{{logged}}" class="logout" hover-class="hover" bindtap="onLogout">退出登录</view>
+
+    <view class="footer">免费小说 {{version}} · 仅供学习交流</view>
+  </view>
+</view>
