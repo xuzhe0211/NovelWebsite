@@ -41,7 +41,7 @@ docker run --name novel-mysql -e MYSQL_ROOT_PASSWORD=root -e MYSQL_DATABASE=nove
 > `--mysql-native-password=ON` 打开）。Sequel Pro 这类老客户端的内置库只认
 > native，会报 `Client does not support authentication protocol requested by server`。
 > 解决办法：换 **Sequel Ace**（Sequel Pro 的活跃分支，免费，支持 Apple Silicon）
-> 或 TablePlus / DBeaver；连接参数 `192.168.1.111:3306` / `root` / `root` / `novel`（本机也可用 `127.0.0.1`）。
+> 或 TablePlus / DBeaver；连接参数 `127.0.0.1:3306` / `root` / `root` / `novel`（本机也可用 `127.0.0.1`）。
 > 不改数据库认证方式，MySQL 8.4 的安全默认值保持原样。
 
 ### 2. 安装依赖
@@ -136,14 +136,14 @@ npm run crawl:fast -- --ids 1761978,11510034 --chapters 200 --concurrency 6
 npm start          # 或 npm run dev（文件变更自动重启）
 ```
 
-默认地址 `http://192.168.1.111:3000`（服务监听 `0.0.0.0`，手机/其他电脑同网可直接访问；本机也可用 `http://127.0.0.1:3000`），健康检查：`GET /api/health`。
+默认地址 `http://127.0.0.1:3000`（服务监听 `0.0.0.0`，手机/其他电脑同网可直接访问；本机也可用 `http://127.0.0.1:3000`），健康检查：`GET /api/health`。
 
 ## 二、小程序启动
 
 1. 用「微信开发者工具」导入 `miniprogram/` 目录。
 2. AppID：可先用「测试号」；正式上线前替换为自己的 AppID。
 3. 详情 → 本地设置 → 勾选「不校验合法域名、web-view（业务域名）、TLS 版本及 HTTPS 证书」，以便访问本机后端。
-4. 后端地址统一用局域网 IP：`miniprogram/utils/config.js` 的 `BASE_URL` 为 `http://192.168.1.111:3000`（`server/.env` 的 `DB_HOST` 同为该 IP），手机与电脑需同一网络；换网段时只改这两处。
+4. 后端地址统一用局域网 IP：`miniprogram/utils/config.js` 的 `BASE_URL` 为 `http://127.0.0.1:3000`（`server/.env` 的 `DB_HOST` 同为该 IP），手机与电脑需同一网络；换网段时只改这两处。
 5. 打开「我的」→ 登录，即可测试用户体系、书架与进度同步。
 
 ### 演示数据兜底（开发期）
@@ -160,7 +160,7 @@ npm start          # 或 npm run dev（文件变更自动重启）
 - 所有封面统一走 `components/novel-cover`：`coverUrl` 能加载就显示图片；为空、404、防盗链 403 时自动渲染按书名生成的封面（8 组配色，按书名 hash 固定），列表里不会再出现空白或只有一个字。
 - 相对路径（`/static/xxx.jpg`）会自动补上 `BASE_URL`。
 - 外链封面默认经后端 `GET /api/cover?url=` 代理：服务端带 `Referer` 取图并内存缓存 6 小时，解决小说站防盗链与小程序图片域名白名单问题；不需要时把 `utils/config.js` 的 `USE_COVER_PROXY` 改为 `false`。
-- **真机预览为什么之前看不到封面**：微信自基础库 3.8.7 起，`<image>` 组件在开发版 / 体验版**不再加载 `http://` 图片**，而 `wx.request` 仍可用——所以表现是「数据正常、封面一片空白，且不触发 `binderror`」，跟 IP 是 `127.0.0.1` 还是 `192.168.1.111` 无关。现在外链封面改走 **data URI**：`<image src="data:image/jpeg;base64,...">`，由 `wx.request` 从 `GET /api/cover?url=&b64=1&w=220` 取回，完全不发图片请求，因此真机不打开调试也能显示。开关是 `utils/config.js` 的 `COVER_INLINE`（默认 `true`）；接口同时用 `sharp` 把封面缩到显示宽度的 2.2 倍、JPEG 66%，单张 base64 约 20KB。
+- **真机预览为什么之前看不到封面**：微信自基础库 3.8.7 起，`<image>` 组件在开发版 / 体验版**不再加载 `http://` 图片**，而 `wx.request` 仍可用——所以表现是「数据正常、封面一片空白，且不触发 `binderror`」，跟 IP 是 `127.0.0.1` 还是 `127.0.0.1` 无关。现在外链封面改走 **data URI**：`<image src="data:image/jpeg;base64,...">`，由 `wx.request` 从 `GET /api/cover?url=&b64=1&w=220` 取回，完全不发图片请求，因此真机不打开调试也能显示。开关是 `utils/config.js` 的 `COVER_INLINE`（默认 `true`）；接口同时用 `sharp` 把封面缩到显示宽度的 2.2 倍、JPEG 66%，单张 base64 约 20KB。
 - 若 `COVER_INLINE` 关掉或取 base64 失败，组件仍会退回代理地址，最后才用文字封面兜底。
 - 效果预览：`docs/cover-preview.png`（同尺寸排版示意）。
 

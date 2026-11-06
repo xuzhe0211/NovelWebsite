@@ -1,5 +1,5 @@
 // API 冒烟测试：先启动 npm start，再 node scripts/smoke-api.js
-const base = process.argv[2] || 'http://192.168.1.111:3000';
+const base = process.argv[2] || 'http://127.0.0.1:3000';
 
 async function getJson(path, opts) {
 	const r = await fetch(base + path, opts);

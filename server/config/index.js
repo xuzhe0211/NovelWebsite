@@ -8,7 +8,7 @@ const parseBool = (v, def = false) => {
 export const config = {
 	port: Number(process.env.PORT || 3000),
 	db: {
-		host: process.env.DB_HOST || '192.168.1.111',
+		host: process.env.DB_HOST || '127.0.0.1',
 		port: Number(process.env.DB_PORT || 3306),
 		name: process.env.DB_NAME || 'novel',
 		user: process.env.DB_USER || 'root',

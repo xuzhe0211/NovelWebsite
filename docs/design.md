@@ -113,5 +113,5 @@ Node.js API (server/app.js)
 ## 开发环境
 
 - 微信开发者工具：勾选「不校验合法域名」
-- 后端 `BASE_URL` 在 `miniprogram/utils/config.js`（默认 `http://192.168.1.111:3000`，与 `server/.env` 的 `DB_HOST` 保持一致）
+- 后端 `BASE_URL` 在 `miniprogram/utils/config.js`（默认 `http://127.0.0.1:3000`，与 `server/.env` 的 `DB_HOST` 保持一致）
 - MySQL 8（utf8mb4_0900_ai_ci）；未启动时前端自动走演示数据
