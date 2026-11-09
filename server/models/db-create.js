@@ -10,7 +10,7 @@ export async function createDatabase() {
     password: config.db.pass,
   });
   await conn.query(
-    `CREATE DATABASE IF NOT EXISTS \`${config.db.name}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci`
+    `CREATE DATABASE IF NOT EXISTS \`${config.db.name}\` CHARACTER SET utf8mb4 COLLATE ${config.db.collate}`
   );
   await conn.end();
 }

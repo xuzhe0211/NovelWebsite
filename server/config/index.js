@@ -12,7 +12,10 @@ export const config = {
 		port: Number(process.env.DB_PORT || 3306),
 		name: process.env.DB_NAME || 'novel',
 		user: process.env.DB_USER || 'root',
-		pass: process.env.DB_PASS || 'root'
+		pass: process.env.DB_PASS || 'root',
+		// 排序规则：utf8mb4_unicode_ci 在 MySQL 5.7 / 8.0 均可用。
+		// 本地 8.0 想用 0900_ai_ci 可设 DB_COLLATE=utf8mb4_0900_ai_ci
+		collate: process.env.DB_COLLATE || 'utf8mb4_unicode_ci'
 	},
 	jwt: {
 		secret: process.env.JWT_SECRET || 'dev-secret-change-me',

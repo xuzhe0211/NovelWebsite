@@ -14,10 +14,10 @@ export const sequelize = new Sequelize(config.db.name, config.db.user, config.db
   dialect: 'mysql',
   dialectOptions: { charset: 'utf8mb4' },
   charset: 'utf8mb4',
-  collate: 'utf8mb4_0900_ai_ci',
+  collate: config.db.collate,
   logging: false,
   timezone: '+08:00',
-  define: { charset: 'utf8mb4', collate: 'utf8mb4_0900_ai_ci' },
+  define: { charset: 'utf8mb4', collate: config.db.collate },
 });
 
 const User = UserFactory(sequelize);

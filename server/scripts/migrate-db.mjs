@@ -14,7 +14,8 @@ import { config } from '../config/index.js';
 
 // 外键依赖顺序：父表在前
 const TABLES = ['users', 'categories', 'novels', 'chapters', 'bookshelves'];
-const BATCH = 500;
+// 章节正文可能很长，批次过大会撑爆目标库的 max_allowed_packet
+const BATCH = 50;
 
 function arg(name, fallback) {
   const hit = process.argv.find((a) => a.startsWith(`--${name}=`));
@@ -61,8 +62,16 @@ async function main() {
     password: target.password,
     connectTimeout: 15000,
   });
+  // 目标库版本决定排序规则：MySQL 5.7（含云托管 CynosDB 5.7）没有 utf8mb4_0900_ai_ci
+  const [[vrow]] = await root.query('SELECT VERSION() AS v');
+  const serverVersion = String(vrow.v || '');
+  const major = parseInt(serverVersion, 10) || 0;
+  const collate =
+    arg('collate', '') || (major >= 8 ? 'utf8mb4_0900_ai_ci' : 'utf8mb4_unicode_ci');
+  log(`目标版本: ${serverVersion} → 排序规则 ${collate}`);
+
   await root.query(
-    `CREATE DATABASE IF NOT EXISTS \`${target.database}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci`
+    `CREATE DATABASE IF NOT EXISTS \`${target.database}\` CHARACTER SET utf8mb4 COLLATE ${collate}`
   );
   await root.end();
   log(`目标库就绪: ${target.database}`);
@@ -78,8 +87,11 @@ async function main() {
   for (const table of TABLES) {
     // 1) 建表：直接用源库的 DDL，保证索引与字段完全一致
     const [[ddlRow]] = await src.query(`SHOW CREATE TABLE \`${table}\``);
-    const ddl = ddlRow['Create Table'];
-    await dst.query(ddl.replace(/^CREATE TABLE/, 'CREATE TABLE IF NOT EXISTS'));
+    // 源库 DDL 带 0900_ai_ci，目标库若是 5.7 需替换掉
+    const ddl = ddlRow['Create Table']
+      .replace(/utf8mb4_0900_ai_ci/g, collate)
+      .replace(/^CREATE TABLE/, 'CREATE TABLE IF NOT EXISTS');
+    await dst.query(ddl);
 
     // 2) 复制数据
     const [[{ total }]] = await src.query(`SELECT COUNT(*) AS total FROM \`${table}\``);
