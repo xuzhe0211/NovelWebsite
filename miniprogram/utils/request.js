@@ -1,9 +1,9 @@
-const { BASE_URL } = require('./config');
+const transport = require('./transport');
 const { getToken, clearAuth, login } = require('./auth');
 const demo = require('./demo');
 
 /**
- * 统一请求封装
+ * 统一请求封装（底层传输见 utils/transport.js：本地 wx.request / 云托管 callContainer）
  * @param {object} opts
  *  - url: 相对路径，如 '/api/home'
  *  - method, data, header
@@ -46,7 +46,7 @@ function tryFill(url, data) {
   return { hit: false };
 }
 
-function request(opts) {
+async function request(opts) {
   const {
     url,
     method = 'GET',
@@ -58,64 +58,61 @@ function request(opts) {
     loadingText = '加载中',
   } = opts;
 
-  return new Promise((resolve, reject) => {
-    if (loading) wx.showLoading({ title: loadingText, mask: true });
+  if (loading) wx.showLoading({ title: loadingText, mask: true });
 
-    const token = getToken();
-    wx.request({
-      url: BASE_URL + url,
-      method,
-      data,
-      header: {
-        'content-type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        ...header,
-      },
-      success: async (res) => {
-        if (loading) wx.hideLoading();
-        const body = res.data || {};
+  const token = getToken();
+  const headers = {
+    'content-type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...header,
+  };
 
-        // 401：静默重登 + 重放一次
-        if (res.statusCode === 401 || body.code === 401) {
-          if (retry) {
-            try {
-              await login();
-              const result = await request({ ...opts, retry: false, loading: false });
-              return resolve(result);
-            } catch (e) {
-              clearAuth();
-            }
-          } else {
-            clearAuth();
-          }
-          return reject({ code: 401, message: '请先登录' });
-        }
+  let res;
+  try {
+    res = await transport.send({ url, method, data, header: headers });
+  } catch (err) {
+    // 网络层失败（后端不可达 / 云端未部署）
+    if (loading) wx.hideLoading();
+    const hit = tryDemo(method, url, data);
+    if (hit.hit) return hit.data;
+    throw { code: -1, message: '网络异常，请稍后重试', error: err };
+  }
 
-        const serverError =
-          res.statusCode >= 500 || (typeof body.code === 'number' && body.code >= 500);
-        if (serverError) {
-          const hit = tryDemo(method, url, data);
-          if (hit.hit) return resolve(hit.data);
-          return reject({ code: body.code, message: body.message || '服务器异常' });
-        }
+  if (loading) wx.hideLoading();
+  const body = res.data || {};
 
-        if (res.statusCode >= 200 && res.statusCode < 300 && body.code === 0) {
-          if (demoFill) {
-            const hit = tryFill(url, body.data);
-            if (hit.hit) return resolve(hit.data);
-          }
-          return resolve(body.data);
-        }
-        reject({ code: body.code, message: body.message || '请求失败' });
-      },
-      fail: (err) => {
-        if (loading) wx.hideLoading();
-        const hit = tryDemo(method, url, data);
-        if (hit.hit) return resolve(hit.data);
-        reject({ code: -1, message: '网络异常，请稍后重试', error: err });
-      },
-    });
-  });
+  // 401：静默重登 + 重放一次
+  if (res.statusCode === 401 || body.code === 401) {
+    if (retry) {
+      try {
+        await login();
+        return await request({ ...opts, retry: false, loading: false });
+      } catch (e) {
+        clearAuth();
+      }
+    } else {
+      clearAuth();
+    }
+    throw { code: 401, message: '请先登录' };
+  }
+
+  const serverError =
+    res.statusCode >= 500 || (typeof body.code === 'number' && body.code >= 500);
+  if (serverError) {
+    const hit = tryDemo(method, url, data);
+    if (hit.hit) return hit.data;
+    throw { code: body.code, message: body.message || '服务器异常' };
+  }
+
+  if (res.statusCode >= 200 && res.statusCode < 300 && body.code === 0) {
+    if (demoFill) {
+      const hit = tryFill(url, body.data);
+      if (hit.hit) return hit.data;
+    }
+    return body.data;
+  }
+
+  throw { code: body.code, message: body.message || '请求失败' };
 }
 
 const get = (url, params, opts = {}) => {

@@ -28,7 +28,7 @@
           src="{{item.coverUrl}}"
           title="{{item.title}}"
           author="{{item.author}}"
-          category="{{item.category.name}}"
+          category="{{item.category && item.category.name}}"
           size="{{168}}"
           radius="{{12}}"
         />

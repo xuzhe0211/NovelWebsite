@@ -1,4 +1,4 @@
-const { BASE_URL } = require('./config');
+const transport = require('./transport');
 const demo = require('./demo');
 
 const TOKEN_KEY = 'novel_token';
@@ -51,15 +51,17 @@ function logout() {
 }
 
 // 底层请求（不走 request.js，避免循环依赖；也不做演示兜底）
+// 走 transport，自动适配本地直连 / 云托管 callContainer
 function rawRequest(options) {
-  return new Promise((resolve, reject) => {
-    wx.request({
-      ...options,
+  return transport
+    .send({
+      url: options.url,
+      method: options.method,
+      data: options.data,
+      header: options.header,
       timeout: options.timeout || 8000,
-      success: (res) => resolve(res.data),
-      fail: reject,
-    });
-  });
+    })
+    .then((res) => res.data);
 }
 
 // 游客模式（无 AppID）下 wx.login 可能失败，用本地持久设备ID兜底
@@ -86,7 +88,7 @@ async function exchangeCode(code) {
   let res;
   try {
     res = await rawRequest({
-      url: `${BASE_URL}/api/auth/login`,
+      url: '/api/auth/login',
       method: 'POST',
       data: { code: code || getDeviceId(), deviceId: getDeviceId() },
       header: { 'content-type': 'application/json' },
@@ -192,7 +194,7 @@ async function updateProfile(patch = {}) {
 
   try {
     const res = await rawRequest({
-      url: `${BASE_URL}/api/auth/profile`,
+      url: '/api/auth/profile',
       method: 'PUT',
       data: payload,
       header: {

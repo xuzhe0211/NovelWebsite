@@ -217,6 +217,10 @@ GET  /api/online/sources                         # 可用数据源
 - 搜索走七猫搜索接口 `qimaoapi/api/search/result?keyword=`（约 0.5s，一次 15 条，带总数）；
 - 导入复用 `services/scraper/qimao-fetch.js` 的抓取核心（与 `crawl:fast` 同一套逻辑），只抓 `is_vip=0` 的免费章；
 - 请求层优先裸 HTTP，只有命中 WAF 挑战页时才启动 Playwright 取 cookie，因此**没装浏览器也能搜索/导入**；
+- 七猫的 WAF cookie（`acw_sc__v2`）有时效：现在按 6 分钟 TTL 主动续期，命中验证页还会强制刷新一次再重试，
+  不会再出现「重启后能搜、过一会儿就一直提示书源限流」；
+- 搜索这类低频接口在 cookie 仍失效时会用「浏览器页内 fetch」兜底（起一次 Chromium，约 2~4s），
+  所以偶尔一次偏慢，但不会直接报限流；首次启动时预热约 6s；
 - 任务表在内存中保留 30 分钟，同一本书并发重复点击会复用同一任务；抓取完成后 `cacheClear()` 让首页/排行立刻看到新书；
 - 单本首次默认最多抓 50 章（补章每批按 10/50/100/200 选，见 3.1），免费章不足 3 章的书会明确报「暂不支持导入」；
 - 已入库的书在搜索结果里标为「阅读 · N章」，点击直接进详情，不会重复抓取。
@@ -297,7 +301,20 @@ GET  /api/online/sources                         # 可用数据源
 | `npm run verify` | 无数据库自检 |
 | `npm start` / `npm run dev` | 启动服务 |
 
-## 六、注意事项
+## 六、部署上线（微信云托管）
+
+正式对外提供访问需要公网地址。本项目已适配微信云托管：小程序用 `wx.cloud.callContainer` 走微信内网调用，
+**不需要服务器域名、不需要备案、不用自己配 HTTPS**。
+
+完整步骤见 **[docs/deploy-cloudrun.md](docs/deploy-cloudrun.md)**，要点：
+
+- 仓库根目录的 `Dockerfile` 已包含 Node 20 + Chromium（全网搜索过 WAF 需要）；
+- `container.config.json` 已配好端口 80 / 1 核 2G / 最小实例 0；
+- 数据迁移：`cd server && npm run db:migrate -- --host=<云库外网地址> --pass=<密码>`；
+- 小程序切云端：把 `miniprogram/utils/config.js` 的 `MODE` 改为 `'cloud'` 并填入环境 ID。
+- 开发期不受影响：`MODE` 保持 `'local'` 时仍然直连 `http://127.0.0.1:3000`。
+
+## 七、注意事项
 
 - 七猫/番茄为简体内容；`twkan` 为繁体，抓取后统一用 OpenCC 转简体入库。
 - `twkan` 有 Cloudflare 人工验证，仅作可选源；每周自动抓取推荐用七猫/番茄（无需人工验证）。

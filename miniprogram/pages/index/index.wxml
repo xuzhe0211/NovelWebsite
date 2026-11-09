@@ -41,7 +41,7 @@
               radius="{{14}}"
             />
             <view wx:if="{{item.isCompleted}}" class="hot-tag done">完结</view>
-            <view wx:else class="hot-tag">{{item.category.name}}</view>
+            <view wx:else class="hot-tag">{{item.category && item.category.name}}</view>
           </view>
           <view class="hot-title ellipsis">{{item.title}}</view>
           <view class="hot-meta ellipsis">

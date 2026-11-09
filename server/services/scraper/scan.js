@@ -4,6 +4,7 @@
 //   node services/scraper/scan.js --urls https://www.qimao.com/shuku/a-a-a-a-a-a-a-click-1/
 import https from 'node:https';
 import { chromium } from 'playwright';
+import { CHROMIUM_ARGS } from './browser-args.js';
 import { getSource } from './sources.js';
 import { discoverBooks } from './parser.js';
 import { Novel, sequelize } from '../../models/index.js';
@@ -74,7 +75,7 @@ async function main() {
   const extra = (argValue('urls') || '').split(',').map((s) => s.trim()).filter(Boolean);
   const urls = [...extra, ...LIST_PAGES];
 
-  const b = await chromium.launch({ headless: true });
+  const b = await chromium.launch({ headless: true, args: CHROMIUM_ARGS });
   const ctx = await b.newContext({ userAgent: UA });
   const page = await ctx.newPage();
   await page.goto('https://www.qimao.com/', { waitUntil: 'domcontentloaded' }).catch(() => {});

@@ -12,6 +12,7 @@
     "db:check": "node scripts/check-db.js",
     "db:reset": "node scripts/reset-novel.js",
     "smoke": "node scripts/smoke-api.js",
+    "db:migrate": "node scripts/migrate-db.mjs",
     "crawl": "node services/scraper/run.js",
     "crawl:fast": "node services/scraper/fast.js",
     "crawl:scan": "node services/scraper/scan.js",

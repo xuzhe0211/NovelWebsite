@@ -1,0 +1,20 @@
+{
+  "containerPort": 80,
+  "dockerfilePath": "Dockerfile",
+  "minNum": 0,
+  "maxNum": 5,
+  "cpu": 1,
+  "mem": 2,
+  "policyType": "cpu",
+  "policyThreshold": 60,
+  "customLogs": "stdout",
+  "initialDelaySeconds": 10,
+  "envParams": {
+    "NODE_ENV": "production",
+    "PORT": "80",
+    "TZ": "Asia/Shanghai",
+    "TRUST_PROXY": "true",
+    "LOG_TO_FILE": "false",
+    "ENABLE_CRON": "false"
+  }
+}

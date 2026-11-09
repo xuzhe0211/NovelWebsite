@@ -18,7 +18,7 @@
             src="{{item.novel.coverUrl}}"
             title="{{item.novel.title}}"
             author="{{item.novel.author}}"
-            category="{{item.novel.category.name}}"
+            category="{{item.novel.category && item.novel.category.name}}"
             size="{{120}}"
             radius="{{10}}"
             badge="{{item.novel.isCompleted ? '完结' : ''}}"

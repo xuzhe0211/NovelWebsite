@@ -1,7 +1,26 @@
-// 后端服务地址：开发期用本机地址，需在微信开发者工具勾选「不校验合法域名」
-// 真机调试请改为电脑局域网 IP，如 http://192.168.1.10:3000；上线改为备案 HTTPS 域名
+// 运行环境配置
+//
+// MODE:
+//   'local' —— 走 wx.request 直连后端（开发期用，需在开发者工具勾选「不校验合法域名」）
+//   'cloud' —— 走 wx.cloud.callContainer 调微信云托管（上线用：免域名、免备案、免 HTTPS 配置）
+//
+// 切到 cloud 前需完成：
+//   1. 云托管控制台创建环境与服务（服务名即 CLOUD_SERVICE）
+//   2. 把环境 ID 填进 CLOUD_ENV
+//   3. 小程序基础库 ≥ 2.23.0（callContainer 依赖）
+const MODE = 'local';
+
 module.exports = {
+	MODE,
+	// 仅 local 模式使用。真机调试请改成电脑局域网 IP，如 http://192.168.1.10:3000
 	BASE_URL: 'http://127.0.0.1:3000',
+	// 仅 cloud 模式使用：云托管环境 ID（形如 prod-1gxxxxxx）与服务名
+	CLOUD_ENV: 'prod-d4ghyygv32488a832',
+	CLOUD_SERVICE: 'koa-ia9w',
+	// 云托管服务的公网 HTTPS 域名（控制台「服务设置 → 访问域名」里可查）
+	// 接口调用走 callContainer 不需要它；只有 <image> 直连图片/静态资源时才用到
+	CLOUD_BASE_URL: '',
+
 	PAGE_SIZE: 20,
 	// 后端未启动 / 数据库为空时的演示数据兜底。
 	// 上线前请改为 false：届时所有页面只展示真实接口数据。

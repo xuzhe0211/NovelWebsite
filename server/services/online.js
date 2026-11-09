@@ -62,8 +62,16 @@ async function searchQimao(keyword, page = 1) {
   const url = `https://www.qimao.com/qimaoapi/api/search/result?keyword=${encodeURIComponent(
     keyword
   )}&page=${page}`;
-  const raw = await fetchText(url, { log });
-  const json = JSON.parse(raw);
+  // 搜索是低频操作，允许最后用浏览器兜底（cookie 过期时也能救回来）；
+  // retry 收到 1：命中验证页会强制换 cookie 后重试一次，再不行直接走浏览器，
+  // 比默认重试 3 轮快很多（用户在前端点搜索不会干等十几秒）。
+  const raw = await fetchText(url, { log, browserFallback: true, retry: 1 });
+  let json;
+  try {
+    json = JSON.parse(raw);
+  } catch {
+    throw new Error('书源返回了非预期内容（可能触发验证），请稍后重试');
+  }
   const data = (json && json.data) || {};
   const list = data.search_list || [];
   const pageData = data.page_data || {};
@@ -130,9 +138,11 @@ export async function searchOnline(keyword, { page = 1, source = 'qimao' } = {})
         result = cached.result;
       } else {
         logger.warn({ keyword: kw, err: e.message }, '全网搜索失败');
-        const msg = /验证|WAF|反爬|频繁/.test(e.message)
-          ? '书源暂时限流，请稍等 1 分钟再试'
-          : `联网搜索失败：${e.message}`;
+        const msg = /验证|WAF|反爬/.test(e.message)
+          ? '书源需要人机验证，正在自动恢复，请稍后重试'
+          : /频繁|429|限流/.test(e.message)
+            ? '书源暂时限流，请稍等 1 分钟再试'
+            : `联网搜索失败：${e.message}`;
         throw new Error(msg);
       }
     }

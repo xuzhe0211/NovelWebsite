@@ -17,6 +17,9 @@ import onlineRouter from './routes/online.js';
 import { startWeeklyJob } from './jobs/weekly.js';
 
 const app = express();
+// 部署在云托管/反向代理后面时，让 req.ip / req.protocol 取到真实值
+if (config.trustProxy) app.set('trust proxy', true);
+
 app.use(express.json({ limit: '2mb' }));
 app.use(responseMiddleware);
 
@@ -37,21 +40,53 @@ app.use('/api', onlineRouter);
 app.use(notFoundHandler);
 app.use(errorHandler);
 
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// 容器冷启动时数据库可能还没就绪，先重试几次再放弃
+async function connectDb(attempts = 6, gapMs = 3000) {
+  for (let i = 1; i <= attempts; i++) {
+    try {
+      await sequelize.authenticate();
+      console.log(`[server] 数据库连接成功（第 ${i} 次尝试）`);
+      return;
+    } catch (err) {
+      console.warn(`[server] 数据库连接失败（第 ${i}/${attempts} 次）: ${err.message}`);
+      if (i === attempts) throw err;
+      await sleep(gapMs);
+    }
+  }
+}
+
 async function bootstrap() {
   try {
-    await sequelize.authenticate();
-    console.log('[server] 数据库连接成功');
+    await connectDb();
   } catch (err) {
-    console.error('[server] 数据库连接失败，请检查 .env 与 MySQL 服务', err.message);
+    console.error('[server] 数据库不可用，进程退出（容器会自动重启）', err.message);
     process.exit(1);
   }
 
-  // 注册每周末爬虫调度
-  startWeeklyJob();
+  // 多实例/缩容到 0 的环境里内置 cron 会重复或漏跑，线上关掉，改用云托管定时任务
+  if (config.enableCron) {
+    startWeeklyJob();
+  } else {
+    console.log('[server] ENABLE_CRON=false，未启用内置定时爬虫');
+  }
 
-  app.listen(config.port, () => {
-    console.log(`[server] API 已启动: http://localhost:${config.port}`);
+  const server = app.listen(config.port, () => {
+    console.log(`[server] API 已启动，监听端口 ${config.port}`);
   });
+
+  // 容器缩容/重启发 SIGTERM，优雅关闭避免请求被硬切
+  let closing = false;
+  const shutdown = (sig) => {
+    if (closing) return;
+    closing = true;
+    console.log(`[server] 收到 ${sig}，正在关闭`);
+    server.close(() => process.exit(0));
+    setTimeout(() => process.exit(0), 8000).unref();
+  };
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
 }
 
 bootstrap();

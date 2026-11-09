@@ -1,4 +1,11 @@
-const { BASE_URL, USE_COVER_PROXY, COVER_INLINE } = require('../../utils/config');
+const {
+  BASE_URL,
+  CLOUD_BASE_URL,
+  MODE,
+  USE_COVER_PROXY,
+  COVER_INLINE,
+} = require('../../utils/config');
+const transport = require('../../utils/transport');
 
 /**
  * 通用书籍封面
@@ -34,8 +41,13 @@ const inlineCache = new Map(); // key -> dataUri
 const inlinePending = new Map(); // key -> Promise
 const MAX_CACHE = 200;
 
+// 图片/静态资源的基地址：callContainer 只传 JSON，图片必须走公网 HTTPS 域名
+function assetBase() {
+  return MODE === 'cloud' ? CLOUD_BASE_URL : BASE_URL;
+}
+
 function proxyUrl(url) {
-  return `${BASE_URL}/api/cover?url=${encodeURIComponent(url)}`;
+  return `${assetBase()}/api/cover?url=${encodeURIComponent(url)}`;
 }
 
 function hashCode(str) {
@@ -61,7 +73,7 @@ function resolveSrc(src) {
   if (/^https?:\/\//i.test(url)) {
     return USE_COVER_PROXY ? proxyUrl(url) : url;
   }
-  if (url.charAt(0) === '/') return BASE_URL + url;
+  if (url.charAt(0) === '/') return assetBase() + url;
   return url;
 }
 
@@ -71,32 +83,29 @@ function pixelWidth(rpx) {
   return Math.max(96, Math.min(420, px));
 }
 
-/** 用 wx.request 取 base64 封面（带内存缓存 + 并发去重） */
+/** 取 base64 封面（带内存缓存 + 并发去重）。走 transport，本地/云托管都可用 */
 function loadInline(url, width) {
   const key = `${url}@${width}`;
   if (inlineCache.has(key)) return Promise.resolve(inlineCache.get(key));
   if (inlinePending.has(key)) return inlinePending.get(key);
 
-  const task = new Promise((resolve, reject) => {
-    wx.request({
-      url: `${proxyUrl(url)}&b64=1&w=${width}`,
+  const task = transport
+    .send({
+      url: `/api/cover?url=${encodeURIComponent(url)}&b64=1&w=${width}`,
       method: 'GET',
       timeout: 15000,
-      success(res) {
-        const body = (res && res.data) || {};
-        const data = body.data || {};
-        const dataUrl = data.dataUrl;
-        if (res.statusCode === 200 && body.code === 0 && dataUrl) {
-          if (inlineCache.size > MAX_CACHE) inlineCache.clear();
-          inlineCache.set(key, dataUrl);
-          resolve(dataUrl);
-        } else {
-          reject(new Error('cover inline failed'));
-        }
-      },
-      fail: reject,
+    })
+    .then((res) => {
+      const body = (res && res.data) || {};
+      const data = body.data || {};
+      const dataUrl = data.dataUrl;
+      if (res.statusCode === 200 && body.code === 0 && dataUrl) {
+        if (inlineCache.size > MAX_CACHE) inlineCache.clear();
+        inlineCache.set(key, dataUrl);
+        return dataUrl;
+      }
+      throw new Error('cover inline failed');
     });
-  });
 
   inlinePending.set(key, task);
   const done = () => inlinePending.delete(key);
@@ -106,14 +115,20 @@ function loadInline(url, width) {
 
 Component({
   properties: {
-    src: { type: String, value: '' },
-    title: { type: String, value: '' },
-    author: { type: String, value: '' },
-    category: { type: String, value: '' },
+    // 说明：这些字段一律用 type: null（接受任意类型）。
+    // 微信在组件实例刚创建、父级数据还没下发时，会先把绑定属性置为 null，
+    // 若声明 type: String 就会刷 "type-uncompatible value: expected <String>
+    // but get null value" 的警告；同时调用方可能传 {{item.category.name}}
+    // 这类对空对象取属性的表达式，结果也可能为 null。
+    // 这里统一放宽类型，由 render() 用 String() 归一化，渲染逻辑不受影响。
+    src: { type: null, value: '' },
+    title: { type: null, value: '' },
+    author: { type: null, value: '' },
+    category: { type: null, value: '' },
     // 封面宽度（rpx），高度按 3:4 自动计算
     size: { type: Number, value: 120 },
     radius: { type: Number, value: 10 },
-    badge: { type: String, value: '' },
+    badge: { type: null, value: '' },
     lazy: { type: Boolean, value: true },
   },
 
@@ -150,12 +165,14 @@ Component({
   methods: {
     render() {
       const p = this.properties || {};
+      // null / undefined 一律归一化为字符串，避免下游 .trim() 抛错
+      const toStr = (v) => (v === null || v === undefined ? '' : String(v));
       const w = Math.max(40, Number(p.size) || 120);
       const h = Math.round((w * 4) / 3);
       const r = Number(p.radius) >= 0 ? Number(p.radius) : 10;
-      const title = (p.title || '').trim() || '未命名';
-      const author = (p.author || '').trim();
-      const category = (p.category || '').trim();
+      const title = toStr(p.title).trim() || '未命名';
+      const author = toStr(p.author).trim();
+      const category = toStr(p.category).trim();
       const palette = PALETTES[hashCode(title) % PALETTES.length];
 
       const pad = Math.round(w * 0.09);
@@ -189,7 +206,7 @@ Component({
         tag: category,
       });
 
-      this.loadImage((p.src || '').trim(), w);
+      this.loadImage(toStr(p.src).trim(), w);
     },
 
     /**
@@ -220,6 +237,11 @@ Component({
         },
         () => {
           if (this._destroyed || this._seq !== seq) return;
+          // 云托管模式下若没配公网域名，就没有可用的图片地址，直接保留文字封面
+          if (MODE === 'cloud' && !CLOUD_BASE_URL) {
+            console.warn('[novel-cover] 未配置 CLOUD_BASE_URL，使用文字封面：', url);
+            return;
+          }
           console.warn('[novel-cover] 内联封面失败，退回代理地址：', url);
           this.setData({ realSrc: proxyUrl(url) });
         }

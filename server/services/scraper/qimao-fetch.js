@@ -13,6 +13,7 @@ import http from 'node:http';
 import https from 'node:https';
 import { Chapter } from '../../models/index.js';
 import { getSource } from './sources.js';
+import { launchBrowser } from './browser-args.js';
 import { parseNovelDetail, parseChapter } from './parser.js';
 import { upsertNovel, saveChapter, finalizeNovel } from './index.js';
 
@@ -22,14 +23,30 @@ export const UA =
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 let cookieJar = '';
+let cookieAt = 0; // 上次拿到 cookie 的时间戳
+let lastRefreshAt = 0; // 上次尝试刷新的时间戳（节流用）
 let refreshing = null;
 
-export async function refreshCookies(log = () => {}) {
+// WAF 的 acw_sc__v2 是有时效的：早先只在「完全没有 cookie」时才去刷新，
+// 结果 cookie 过期后每次请求都撞验证页，重试三次全失败，前端只看到「书源限流」。
+// 现在按 TTL 主动续期，并在命中验证页时强制刷新一次。
+const COOKIE_TTL = 6 * 60 * 1000;
+const MIN_REFRESH_GAP = 20 * 1000; // 两次刷新至少隔 20s，避免刷得太凶
+
+function cookieFresh() {
+  return !!cookieJar && Date.now() - cookieAt < COOKIE_TTL;
+}
+
+export async function refreshCookies(log = () => {}, { force = false } = {}) {
   if (refreshing) return refreshing;
+  if (!force && cookieFresh()) return;
+  // 刚刷过还是不行，说明不是 cookie 的问题，别再反复开浏览器
+  if (Date.now() - lastRefreshAt < MIN_REFRESH_GAP) return;
+
   refreshing = (async () => {
+    lastRefreshAt = Date.now();
     log('  · 获取会话 cookie ...');
-    const { chromium } = await import('playwright');
-    const browser = await chromium.launch({ headless: true });
+    const browser = await launchBrowser();
     try {
       const ctx = await browser.newContext({ userAgent: UA });
       const page = await ctx.newPage();
@@ -37,8 +54,18 @@ export async function refreshCookies(log = () => {}) {
         .goto('https://www.qimao.com/', { waitUntil: 'domcontentloaded', timeout: 30000 })
         .catch(() => {});
       await page.waitForTimeout(2000);
+      // 顺带打一次搜索接口：让 WAF 把 cookie 覆盖到 API 路径，
+      // 避免首页过了挑战、API 仍要验证的情况。
+      await page
+        .evaluate(async () => {
+          await fetch('https://www.qimao.com/qimaoapi/api/search/result?keyword=%E5%89%91%E6%9D%A5&page=1', {
+            credentials: 'include',
+          }).catch(() => {});
+        })
+        .catch(() => {});
       const list = await ctx.cookies();
       cookieJar = list.map((c) => `${c.name}=${c.value}`).join('; ');
+      cookieAt = Date.now();
       log(`  · cookie 已就绪（${list.length} 个）`);
     } finally {
       await browser.close().catch(() => {});
@@ -47,6 +74,37 @@ export async function refreshCookies(log = () => {}) {
     refreshing = null;
   });
   return refreshing;
+}
+
+/**
+ * 兜底：直接在浏览器上下文里用页内 fetch 取数据。
+ * 手工同步 cookie 偶尔仍过不去（WAF 还会校验客户端指纹），
+ * 而页内 fetch 用的是浏览器自己的会话，实测稳定。
+ * 代价是每次要起一个 Chromium（约 2~4s），只给搜索这类低频接口用。
+ */
+export async function fetchViaBrowser(url, log = () => {}) {
+  const browser = await launchBrowser();
+  try {
+    log('  · 改用浏览器直取 ...');
+    const ctx = await browser.newContext({ userAgent: UA });
+    const page = await ctx.newPage();
+    await page
+      .goto('https://www.qimao.com/', { waitUntil: 'domcontentloaded', timeout: 30000 })
+      .catch(() => {});
+    await page.waitForTimeout(1500);
+    const text = await page.evaluate(async (u) => {
+      const r = await fetch(u, { credentials: 'include' });
+      return r.text();
+    }, url);
+    const list = await ctx.cookies();
+    if (list.length) {
+      cookieJar = list.map((c) => `${c.name}=${c.value}`).join('; ');
+      cookieAt = Date.now();
+    }
+    return text;
+  } finally {
+    await browser.close().catch(() => {});
+  }
 }
 
 // 反爬挑战页 / 验证页的特征
@@ -101,7 +159,10 @@ export function httpGet(url, { timeout = 15000, redirects = 3 } = {}) {
   });
 }
 
-export async function fetchText(url, { retry = 3, timeout = 15000, log = () => {} } = {}) {
+export async function fetchText(
+  url,
+  { retry = 3, timeout = 15000, log = () => {}, browserFallback = false } = {}
+) {
   let lastErr;
   for (let i = 0; i <= retry; i++) {
     try {
@@ -109,12 +170,11 @@ export async function fetchText(url, { retry = 3, timeout = 15000, log = () => {
       // 只有偶发命中 WAF 挑战页时才需要浏览器过一次拿 cookie。
       const text = await httpGet(url, { timeout });
       if (text.includes('id="renderData"')) {
-        if (!cookieJar) {
-          await refreshCookies(log).catch((e) =>
-            log(`  · 浏览器不可用，跳过 cookie（${e.message.split('\n')[0]}）`)
-          );
-          await sleep(800); // 等 WAF cookie 生效
-        }
+        // cookie 缺失或已过期：强制换一次再重试（内部有节流，不会狂开浏览器）
+        await refreshCookies(log, { force: true }).catch((e) =>
+          log(`  · 浏览器不可用，跳过 cookie（${e.message.split('\n')[0]}）`)
+        );
+        await sleep(1000); // 等 WAF cookie 生效
         throw new Error('命中反爬验证页');
       }
       if (!text || text.length < 20) throw new Error(`响应过短 ${text.length}`);
@@ -128,6 +188,17 @@ export async function fetchText(url, { retry = 3, timeout = 15000, log = () => {
       }
     }
   }
+
+  // cookie 路线彻底走不通时，用浏览器页内 fetch 兜底（只给低频接口开）
+  if (browserFallback) {
+    try {
+      const text = await fetchViaBrowser(url, log);
+      if (text && text.length >= 20 && !text.includes('id="renderData"')) return text;
+    } catch (e) {
+      log(`  · 浏览器直取失败（${String(e.message).split('\n')[0]}）`);
+    }
+  }
+
   throw lastErr;
 }
 

@@ -4,7 +4,8 @@ Component({
   properties: {
     novel: { type: Object, value: {} },
     showIntro: { type: Boolean, value: true },
-    rank: { type: Number, value: 0 },
+    // 同上：组件刚创建时可能先收到 null，放宽类型避免类型校验警告
+    rank: { type: null, value: 0 },
   },
   data: {
     initial: '书',

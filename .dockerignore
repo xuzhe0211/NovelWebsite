@@ -1,0 +1,27 @@
+# 构建上下文是仓库根目录，小程序与本地产物都不进镜像
+.git
+.gitignore
+**/node_modules
+**/.DS_Store
+
+# 本地环境与隐私
+server/.env
+server/.env.local
+server/logs
+server/public
+server/.playwright-profile*
+server/probe.html
+server/*.zip
+
+# 非后端内容
+miniprogram
+docs
+sql
+.workbuddy
+
+# 文档与本地脚本
+*.md
+start-dev.bat
+Dockerfile
+.dockerignore
+container.config.json

@@ -23,16 +23,26 @@ async function main() {
 		if (chapterId) await getJson(`/api/chapters/${chapterId}`);
 	}
 
-	// 登录（mock）
+	// 登录：未配置 WX_APPID/WX_SECRET 时走 mock，任何 code 都能登录；
+	// 配置了真实小程序凭据后，只能用 wx.login 拿到的真实 code，脚本这里跳过。
 	const r = await fetch(base + '/api/auth/login', {
 		method: 'POST',
 		headers: { 'content-type': 'application/json' },
 		body: JSON.stringify({ code: 'devtest', deviceId: 'devtest' })
 	});
-	const lj = await r.json();
+	const lj = await r.json().catch(() => null);
 	console.log('\n[POST /api/auth/login] HTTP', r.status);
 	console.log(JSON.stringify(lj).slice(0, 200));
 	const token = lj?.data?.token;
+
+	if (!token) {
+		const msg = lj?.message || '';
+		if (/jscode2session|invalid code/.test(msg)) {
+			console.log('→ 已配置真实 WX_APPID，登录需真实 code，本次跳过书架校验（不算失败）');
+		} else {
+			throw new Error(`登录接口异常: ${msg || '未返回 token'}`);
+		}
+	}
 
 	if (token) {
 		const auth = {
