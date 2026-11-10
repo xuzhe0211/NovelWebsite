@@ -277,7 +277,21 @@ Page({
   },
 
   onChapterTap(e) {
-    this.openChapter(e.currentTarget.dataset.cid, 0);
+    const { cid, locked } = e.currentTarget.dataset;
+    // 未登录超试读章数：服务端本就取不到正文，这里先拦一道，避免进阅读页才看到空页
+    if (locked) {
+      wx.showModal({
+        title: '需要登录',
+        content: '未登录只能试读每本书的前几章，登录后可阅读全部章节。',
+        confirmText: '去登录',
+        cancelText: '再看看',
+        success: (r) => {
+          if (r.confirm) wx.navigateTo({ url: '/pages/login/login' });
+        },
+      });
+      return;
+    }
+    this.openChapter(cid, 0);
   },
 
   openChapter(chapterId, position) {

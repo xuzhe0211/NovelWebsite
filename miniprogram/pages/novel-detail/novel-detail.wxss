@@ -304,3 +304,14 @@
 .page-loading {
   padding-top: 200rpx;
 }
+
+/* 未登录超试读章数：章节行右侧「登录」角标 */
+.chapter-lock {
+  flex-shrink: 0;
+  margin-left: 16rpx;
+  font-size: 20rpx;
+  color: #a0a4ac;
+  border: 1rpx solid #dfe2e8;
+  border-radius: 8rpx;
+  padding: 2rpx 10rpx;
+}

@@ -36,6 +36,17 @@
     </view>
   </view>
 
+  <!-- 未登录试读限制：正文未下发，整页换成登录引导 -->
+  <view wx:if="{{locked}}" class="lock-box">
+    <view class="lock-badge">试读结束</view>
+    <view class="lock-title">登录后可继续阅读</view>
+    <view class="lock-desc">
+      未登录时每本书可免费试读前 {{freeChapters || 10}} 章，本章为第 {{lockedNo}} 章
+    </view>
+    <view class="lock-btn" bindtap="goLogin">立即登录</view>
+    <view class="lock-tip">登录后书架、阅读进度会一起同步</view>
+  </view>
+
   <view wx:if="{{loading}}" class="reading-tip">加载中…</view>
   <view wx:if="{{error}}" class="reading-tip">{{error}}</view>
 </view>
@@ -67,6 +78,7 @@
       bindtap="onCatalogTap"
     >
       <text class="cat-title">{{item.title}}</text>
+      <text class="cat-lock" wx:if="{{item.locked && item.id !== chapterId}}">登录</text>
       <text class="cat-dot" wx:if="{{item.id === chapterId}}">在读</text>
     </view>
     <view wx:if="{{catalogLoading}}" class="panel-tip">正在加载目录…</view>

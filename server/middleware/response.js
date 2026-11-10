@@ -3,6 +3,7 @@ export const ErrorCodes = {
   OK: 0,
   BAD_REQUEST: 1001,
   UNAUTHORIZED: 401,
+  FORBIDDEN: 403,
   NOT_FOUND: 404,
   DUPLICATE: 1002,
   INTERNAL: 500,

@@ -9,6 +9,17 @@ const {
 } = require('../../utils/auth');
 const { ENABLE_DEMO } = require('../../utils/config');
 
+// 失败原因不同，给的建议也该不同（原来固定一句「勾选不校验合法域名」会误导）
+function hintForError(e) {
+  const code = e && e.code;
+  if (code === -2) return '请在小程序后台把服务域名加入 request 合法域名。';
+  if (typeof code === 'number' && code >= 500) {
+    return '服务正在启动（闲置后首次访问约 20~30 秒），请再点一次登录。若长期如此，把最小实例调成 1。';
+  }
+  if (code === -1) return '连不上服务器，请确认云托管服务处于「运行中」。';
+  return '登录凭证或服务配置异常，请关掉小程序重新打开再试。';
+}
+
 Page({
   data: {
     loading: false,
@@ -21,6 +32,7 @@ Page({
     isDemoUser: false,
     demoEnabled: false,
     error: '',
+    errorTip: '',
     saving: false,
   },
 
@@ -87,7 +99,7 @@ Page({
   },
 
   doLogin() {
-    this.setData({ loading: true, error: '' });
+    this.setData({ loading: true, error: '', errorTip: '' });
     login()
       .then((res) => {
         const demoUser = !!(res && res.user && res.user.demo);
@@ -101,7 +113,7 @@ Page({
       })
       .catch((e) => {
         const message = (e && e.message) || '登录失败，请稍后重试';
-        this.setData({ loading: false, error: message });
+        this.setData({ loading: false, error: message, errorTip: hintForError(e) });
         wx.showToast({ title: message, icon: 'none' });
       });
   },

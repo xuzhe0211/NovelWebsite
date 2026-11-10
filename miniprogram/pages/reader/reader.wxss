@@ -446,3 +446,54 @@ page {
   border-color: #e8733b;
   box-shadow: 0 0 0 2rpx rgba(232, 115, 59, 0.25);
 }
+
+/* ---------- 未登录试读限制 ---------- */
+.lock-box {
+  margin: 120rpx 0 0;
+  padding: 56rpx 40rpx;
+  text-align: center;
+  border: 1rpx solid rgba(150, 150, 150, 0.3);
+  border-radius: 24rpx;
+}
+.lock-badge {
+  display: inline-block;
+  font-size: 22rpx;
+  color: #e8733b;
+  border: 1rpx solid rgba(232, 115, 59, 0.5);
+  border-radius: 20rpx;
+  padding: 4rpx 16rpx;
+  margin-bottom: 28rpx;
+}
+.lock-title {
+  font-size: 34rpx;
+  font-weight: 600;
+  margin-bottom: 16rpx;
+}
+.lock-desc {
+  font-size: 26rpx;
+  opacity: 0.7;
+  line-height: 1.7;
+  margin-bottom: 40rpx;
+}
+.lock-btn {
+  background: #e8733b;
+  color: #fff;
+  font-size: 30rpx;
+  border-radius: 44rpx;
+  padding: 22rpx 0;
+  margin: 0 40rpx;
+}
+.lock-tip {
+  margin-top: 24rpx;
+  font-size: 22rpx;
+  opacity: 0.5;
+}
+.cat-lock {
+  flex-shrink: 0;
+  margin-left: 14rpx;
+  font-size: 20rpx;
+  color: #8a8a8a;
+  border: 1rpx solid rgba(150, 150, 150, 0.45);
+  border-radius: 8rpx;
+  padding: 2rpx 10rpx;
+}

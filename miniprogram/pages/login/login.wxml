@@ -81,7 +81,7 @@
     <view wx:if="{{error}}" class="error-box">
       <view class="error-title">登录没有成功</view>
       <view class="error-msg">{{error}}</view>
-      <view class="error-tip">请确认后端已启动，或在开发者工具中勾选「不校验合法域名」。</view>
+      <view class="error-tip">{{errorTip}}</view>
     </view>
 
     <view class="agree">

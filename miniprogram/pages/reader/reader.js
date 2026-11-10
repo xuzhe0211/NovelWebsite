@@ -1,5 +1,5 @@
 const { get, put, post } = require('../../utils/request');
-const { isLoggedIn } = require('../../utils/auth');
+const { isLoggedIn, login, getToken } = require('../../utils/auth');
 
 function winSize() {
   try {
@@ -103,6 +103,10 @@ Page({
     theme: 'light',
     loading: true,
     error: '',
+    // 未登录试读限制：后端返回 403 时置 true，整页换成登录引导
+    locked: false,
+    freeChapters: 0,
+    lockedNo: 0,
     settingsOpen: false,
     themes: [
       { key: 'light', label: '白' },
@@ -175,7 +179,7 @@ Page({
   },
 
   loadChapter(chapterId) {
-    this.setData({ loading: true, error: '' });
+    this.setData({ loading: true, error: '', locked: false });
     // 换章后行号从头算，避免沿用上一章的行号跳到中间某页
     this.currentLine = 0;
     get(`/api/chapters/${chapterId}`, null, { retry: false })
@@ -209,7 +213,56 @@ Page({
           }
         );
       })
-      .catch((e) => this.setData({ loading: false, error: e.message || '章节加载失败' }));
+      .catch((e) => {
+        // 403 = 未登录试读限制：不当作错误，换成登录引导（正文根本没下发，本地也没有）
+        if (e && e.code === 403) {
+          // 本地还留着 token 却被拒，多半是 token 过期（服务端 authOptional 解析失败按未登录处理）。
+          // 静默重登一次，成功后自动续上；失败才真的显示登录引导。
+          if (isLoggedIn() && !this._reloginTried) {
+            this._reloginTried = true;
+            login()
+              .then(() => this.loadChapter(chapterId))
+              .catch(() => this.showLocked(e));
+            return;
+          }
+          this.showLocked(e);
+          return;
+        }
+        this.setData({ loading: false, locked: false, error: e.message || '章节加载失败' });
+      });
+  },
+
+  showLocked(e) {
+    const meta = (e && e.data) || {};
+    this._lockedToken = getToken() || '';
+    this.currentLine = 0;
+    this.allLines = [];
+    this.setData({
+      loading: false,
+      error: '',
+      locked: true,
+      freeChapters: Number(meta.freeChapters) || 0,
+      lockedNo: Number(meta.chapterNo) || 0,
+      chapter: null,
+      paragraphs: [],
+      prev: null,
+      next: null,
+    });
+    wx.setNavigationBarTitle({ title: '登录后可读' });
+  },
+
+  // 从登录页返回：token 变了（真的换了登录态）就把被拦的那一章重新拉一遍，
+  // 没变则不做任何事，避免每次 onShow 都白打一次接口。
+  onShow() {
+    if (!this.data.locked) return;
+    if (!isLoggedIn()) return;
+    if ((getToken() || '') === (this._lockedToken || '')) return;
+    this.setData({ locked: false });
+    this.loadChapter(this.data.chapterId);
+  },
+
+  goLogin() {
+    wx.navigateTo({ url: '/pages/login/login' });
   },
 
   measureContent() {

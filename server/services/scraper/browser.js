@@ -39,6 +39,12 @@ const DEFAULT_UA =
 let context = null;
 let currentHeadless = null;
 
+// 容器里没有系统 Chrome（只装了 headless shell），直接走内置，避免每次启动都先失败一次；
+// 本机（macOS）优先用真实 Chrome，过 Cloudflare 更稳。PW_CHANNEL=chrome|none 可强制指定。
+const USE_SYSTEM_CHROME =
+  process.env.PW_CHANNEL === 'chrome' ||
+  (process.env.PW_CHANNEL !== 'none' && process.platform === 'darwin');
+
 async function launch(headless) {
   fs.mkdirSync(USER_DATA_DIR, { recursive: true });
   const baseOptions = {
@@ -53,21 +59,34 @@ async function launch(headless) {
       '--disable-dev-shm-usage',
     ],
   };
-  try {
-    return await chromium.launchPersistentContext(USER_DATA_DIR, { ...baseOptions, channel: 'chrome' });
-  } catch (e) {
-    logger.warn({ err: e.message }, '系统 Chrome 启动失败，回退内置 Chromium');
-    return await chromium.launchPersistentContext(USER_DATA_DIR, baseOptions);
+  if (USE_SYSTEM_CHROME) {
+    try {
+      return await chromium.launchPersistentContext(USER_DATA_DIR, { ...baseOptions, channel: 'chrome' });
+    } catch (e) {
+      logger.warn({ err: e.message }, '系统 Chrome 启动失败，回退内置 Chromium');
+    }
   }
+  return await chromium.launchPersistentContext(USER_DATA_DIR, baseOptions);
 }
 
 export async function getContext(headless = true) {
+  if (process.env.PW_DISABLED === '1') {
+    throw new Error('当前镜像不含浏览器（Dockerfile.lite）：七猫源搜索/导入/阅读正常，需要过 WAF 的第三方站点（如 69shuba）的搜索、导入与补章暂不可用');
+  }
   if (context) {
     if (currentHeadless === headless) return context;
     await closeBrowser();
   }
   logger.info({ headless, userDataDir: USER_DATA_DIR }, '启动浏览器');
-  context = await launch(headless);
+  try {
+    context = await launch(headless);
+  } catch (e) {
+    // 镜像里没装浏览器时的兜底：给可读报错，而不是 execute playwright install 之类的原始堆栈
+    if (/Executable doesn't exist|playwright install|No such file or directory/i.test(String(e?.message || ''))) {
+      throw new Error('容器内没有可用浏览器（未安装 Chromium）：第三方站点抓取不可用，七猫源不受影响');
+    }
+    throw e;
+  }
   currentHeadless = headless;
   return context;
 }

@@ -1,6 +1,6 @@
 {
   "containerPort": 80,
-  "dockerfilePath": "Dockerfile",
+  "dockerfilePath": "Dockerfile.lite",
   "minNum": 0,
   "maxNum": 5,
   "cpu": 1,

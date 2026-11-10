@@ -12,6 +12,7 @@ server/public
 server/.playwright-profile*
 server/probe.html
 server/*.zip
+*.zip
 
 # 非后端内容
 miniprogram
@@ -22,6 +23,7 @@ sql
 # 文档与本地脚本
 *.md
 start-dev.bat
-Dockerfile
+start-dev.sh
+Dockerfile*
 .dockerignore
 container.config.json

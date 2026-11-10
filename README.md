@@ -21,7 +21,9 @@ NovelWebsite/
 ├── miniprogram/      # 微信小程序前端
 ├── server/           # Node.js 后端 + 爬虫 + 调度
 ├── sql/              # 建表 SQL 参考
-└── docs/design.md    # 设计说明与风险记录
+├── docs/design.md    # 设计说明与风险记录
+├── start-dev.sh      # macOS / Linux 一键启动（MySQL + API）
+└── start-dev.bat     # Windows 一键启动
 ```
 
 ## 一、后端启动
@@ -64,6 +66,10 @@ cp .env.example .env
 - 获取：`https://mp.weixin.qq.com` → 登录**小程序**后台 → 开发管理 → 开发设置 → 开发者ID，AppSecret 需管理员扫码后「生成/重置」，**只显示一次**；
 - AppID 必须与 `miniprogram/project.config.json` 的 `appid` 一致，否则 `jscode2session` 会报 40013；
 - 两项任一为空时，`server/services/wechat.js` 走 mock：`openid = mock_<设备ID>`，能跑通登录但不能跨设备识别同一用户；
+- **云托管场景优先用网关注入的 `X-WX-OPENID`**：小程序经 `callContainer` 调用时微信网关会自动带上
+  `X-WX-OPENID` / `X-WX-APPID`，后端直接取用，省一次 `jscode2session` 往返，也不再依赖容器能否访问
+  `api.weixin.qq.com`（曾因容器 fetch 出不去导致登录报 `fetch failed`，详见 docs 6.4）。
+  只有 `X-WX-APPID` 与 `WX_APPID` 一致才采信，防止公网伪造该头冒充他人；
 - AppSecret 等同于账号私钥（可换手机号、发订阅消息），只在服务端 `.env` 里放，`.env` 已被 `.gitignore` 忽略；重置密钥会让旧值立即失效。
 
 ### 4. 初始化数据库
@@ -132,7 +138,22 @@ npm run crawl:fast -- --ids 1761978,11510034 --chapters 200 --concurrency 6
 
 ### 6. 启动 API
 
+**一键启动（macOS / Linux）**
+
 ```bash
+./start-dev.sh          # 检查 MySQL（没有就拉 Docker 容器）→ 检查依赖 → 起 API
+./start-dev.sh --skip-db   # 库在别处（云库/局域网）时跳过 MySQL 检查
+./start-dev.sh --prod      # 用 npm start，不带 --watch
+```
+
+脚本会从 `server/.env` 读 `DB_HOST` / `DB_PORT` / `PORT`，本机没监听就调 Docker Desktop 起
+`novel-mysql` 容器（mysql:8，root/root，库 novel），然后前台跑 `npm run dev`，
+并打印本机与局域网两个地址（真机预览用局域网那个）。Windows 用 `start-dev.bat`。
+
+**手动启动**
+
+```bash
+cd server
 npm start          # 或 npm run dev（文件变更自动重启）
 ```
 
@@ -143,7 +164,7 @@ npm start          # 或 npm run dev（文件变更自动重启）
 1. 用「微信开发者工具」导入 `miniprogram/` 目录。
 2. AppID：可先用「测试号」；正式上线前替换为自己的 AppID。
 3. 详情 → 本地设置 → 勾选「不校验合法域名、web-view（业务域名）、TLS 版本及 HTTPS 证书」，以便访问本机后端。
-4. 后端地址统一用局域网 IP：`miniprogram/utils/config.js` 的 `BASE_URL` 为 `http://127.0.0.1:3000`（`server/.env` 的 `DB_HOST` 同为该 IP），手机与电脑需同一网络；换网段时只改这两处。
+4. 后端地址在 `miniprogram/utils/config.js` 的 `BASE_URL`：**开发者工具模拟器用 `http://127.0.0.1:3000`；真机预览改成电脑的局域网 IP**（跑 `./start-dev.sh` 会直接打印当前 IP，如 `http://192.168.1.108:3000`），手机与电脑需同一网络；换网段时改这一处即可（`server/.env` 的 `DB_HOST` 仍填 `127.0.0.1`，因为库在本机）。
 5. 打开「我的」→ 登录，即可测试用户体系、书架与进度同步。
 
 ### 演示数据兜底（开发期）
@@ -169,6 +190,20 @@ npm start          # 或 npm run dev（文件变更自动重启）
 - 登录态存 `novel_token` / `novel_user`；请求统一带 `Authorization: Bearer`。
 - 登录页已登录状态下可改头像（`open-type="chooseAvatar"`）与昵称（`type="nickname"`）；昵称通过 `PUT /api/auth/profile` 同步到 `users` 表，头像在本机持久化保存。
 - 后端不可达时进入本地体验账号（`user.demo === true`），书架只写本地；后端恢复后重新登录即切换为真实账号。
+
+### 未登录试读限制（`FREE_CHAPTERS`）
+
+未登录用户每本书只能读**前 10 章**，由**服务端**判定，不是前端藏起来：
+
+- `server/config/index.js` → `freeChapters`（环境变量 `FREE_CHAPTERS`，默认 `10`，`0` = 不限制）；
+- `GET /api/chapters/:id`：未登录且 `chapterNo > FREE_CHAPTERS` → `code=403`，正文**根本不下发**，
+  `data` 带 `{ needLogin, freeChapters, chapterNo, novelId }`；伪造/过期 token 一样按未登录处理；
+- `GET /api/novels/:id/chapters`：每条带 `locked`，前端据此显示「登录」角标；
+- 阅读页遇到 403 显示整页登录引导（「试读结束 / 立即登录」），登录返回后自动续读同一章；
+  本地 token 过期时会先静默重登一次，成功则不打扰用户；
+- 详情页目录里锁定章节点一下直接弹「需要登录 → 去登录」，不用先进阅读页。
+
+> 想放宽就改 `FREE_CHAPTERS`（云托管改环境变量，本地改 `server/.env`），不用改代码。
 
 ### 页面与组件
 
@@ -299,6 +334,9 @@ GET  /api/online/sources                         # 可用数据源
 | `npm run probe -- --source qimao --book-id <ID>` | 探查结构与书籍发现 |
 | `npm run import-html -- --dir ... --book-id ... --source ...` | 本地 HTML 兜底导入 |
 | `npm run verify` | 无数据库自检 |
+| `npm run check:cloud` | 云托管上线前静态自检（端口/锁文件/忽略规则/小程序调用配置） |
+| `npm run db:migrate -- --host=... --pass=...` | 本地库 → 云库数据迁移 |
+| `npm run dev:cloud` | 本地起服务但连**云库**（读 `server/.env.cloud`） |
 | `npm start` / `npm run dev` | 启动服务 |
 
 ## 六、部署上线（微信云托管）
@@ -308,11 +346,28 @@ GET  /api/online/sources                         # 可用数据源
 
 完整步骤见 **[docs/deploy-cloudrun.md](docs/deploy-cloudrun.md)**，要点：
 
-- 仓库根目录的 `Dockerfile` 已包含 Node 20 + Chromium（全网搜索过 WAF 需要）；
+- **上线前先自检**：`cd server && npm run check:cloud`（10 秒，静态核对端口/锁文件/`.dockerignore`/小程序调用配置，`✗` 项必须修）；
+- **发布后验收**：`cd server && npm run verify:cloud -- https://<访问域名>`（真实打 6 个接口，含「有数据」「404 语义」，全 ✓ 才切 `MODE`）；
+- **镜像二选一**（`container.config.json` 的 `dockerfilePath` 决定，当前是精简版）：
+  - `Dockerfile.lite` → 镜像 ~330MB，构建 1~2 分钟；登录/书架/目录/阅读、**七猫源的搜索与导入全部可用**；仅「需要过 WAF 的第三方站点」（69shuba 等粘贴链接、这类书的补章）不可用，会返回可读错误；
+  - `Dockerfile` → Node 20 + Chromium headless shell，镜像 1.31GB，功能完整，但**推送 TCR 易超时**（构建机上行只有 ~3MB/s，两个大层并发必挂一层）；
+  - 现成部署包：`novel-api-deploy.zip`（精简版，先传这个）、`novel-api-deploy-full.zip`（完整版）。
 - `container.config.json` 已配好端口 80 / 1 核 2G / 最小实例 0；
-- 数据迁移：`cd server && npm run db:migrate -- --host=<云库外网地址> --pass=<密码>`；
-- 小程序切云端：把 `miniprogram/utils/config.js` 的 `MODE` 改为 `'cloud'` 并填入环境 ID。
-- 开发期不受影响：`MODE` 保持 `'local'` 时仍然直连 `http://127.0.0.1:3000`。
+- 服务名与环境 ID 必须与控制台一致（当前 `CLOUD_ENV=prod-d8g08o83h02a961c3`、`CLOUD_SERVICE=nove-service`）；
+  **该环境必须由本小程序 `wx3de365140274c5f6` 自己开通**——跨主体不支持资源复用，旧环境 `prod-d2gmec6wl77c62d83`
+  正是因为主体不同才导致 `callContainer` 永远 404 `INVALID_HOST`（详见 docs 6.3）；
+- 数据库：**当前用 `grp-ak4ysgny` 实例**（2026-11-10 14:40 迁完）外网
+  `sh-cynosdbmysql-grp-ak4ysgny.sql.tencentcdb.com:23729`、内网 `10.5.110.101:3306`；
+  数据 85 本 / 4424 章。旧实例 `grp-3fmbpvpu` / `grp-qcog9b86` 可停用；
+- 数据迁移：`cd server && npm run db:migrate -- --host=<云库外网地址> --port=<端口> --pass=<密码>`（源库是本地库）；
+  本机若报 `ENOTFOUND`（运营商 DNS 解析不了腾讯云新域名），改用 `--host=<解析出的 IP>`；
+- 小程序已切云端（2026-11-10）：`MODE='cloud'`、`ENABLE_DEMO=false`、`CLOUD_VIA='auto'`、`CLOUD_BASE_URL=''`（留空）；
+- **体验版只有两条可行链路**：① 环境同主体 → `callContainer` 直通（当前方案）；
+  ② 云托管绑一个已备案自定义域名，填进 `CLOUD_BASE_URL` 并加入小程序 request 合法域名（官方禁止用默认公网域名）。详见 docs 6.2；
+- 临时回本地开发：把 `MODE` 改回 `'local'` 即可（直连 `http://127.0.0.1:3000`）；
+- 线上实测（`npm run verify:cloud`）：首页/分类/目录/health 全通；**全网搜索因七猫对云托管出口 IP 触发人机验证而失败**，属预期，需在本机跑搜索/补章，详见 docs 7.2；
+- **冷启动**：最小实例 0 时闲置后首个请求要 20~30s，微信网关等不到会回 500（小程序表现为「网络异常」）。客户端已加 2 次自动重试 + 「正在唤醒服务…」提示（`utils/request.js` 的 `WAKE_RETRY`），根治办法是把最小实例调成 1，详见 docs 7.1；
+- 开发期不受影响：`MODE` 保持 `'local'` 时仍然直连 `http://127.0.0.1:3000`（真机用局域网 IP）。
 
 ## 七、注意事项
 

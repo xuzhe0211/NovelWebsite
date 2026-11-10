@@ -9,6 +9,9 @@ export const CHROMIUM_ARGS = [
 
 // 懒加载 playwright：只在真正需要浏览器时拉起
 export async function launchBrowser(options = {}) {
+  if (process.env.PW_DISABLED === '1') {
+    throw new Error('当前镜像不含浏览器（Dockerfile.lite）：需要过 WAF 的第三方站点抓取不可用，七猫源不受影响');
+  }
   const { chromium } = await import('playwright');
   return chromium.launch({ headless: true, args: CHROMIUM_ARGS, ...options });
 }

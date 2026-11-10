@@ -4,6 +4,8 @@ import { Novel, Category, Chapter } from '../models/index.js';
 import { cacheGet, cacheSet } from '../services/cache.js';
 import { serializeNovel, parsePaging, pagedResult } from '../utils/serialize.js';
 import { ErrorCodes } from '../middleware/response.js';
+import { authOptional } from '../middleware/auth.js';
+import { isLockedFor } from '../utils/access.js';
 
 const router = Router();
 const { Op } = sequelizePkg;
@@ -70,14 +72,21 @@ router.get('/novels/:id', async (req, res, next) => {
 });
 
 // GET /api/novels/:id/chapters 章节列表（不含正文，避免大响应）
-router.get('/novels/:id/chapters', async (req, res, next) => {
+// 每条带 locked 标记：未登录且超出试读章数 → true（前端据此显示「登录」角标）
+router.get('/novels/:id/chapters', authOptional, async (req, res, next) => {
   try {
     const chapters = await Chapter.findAll({
       where: { novelId: req.params.id },
       order: [['chapterNo', 'ASC']],
       attributes: ['id', 'chapterNo', 'title', 'wordCount'],
     });
-    res.ok(chapters.map((c) => c.toJSON()));
+    res.ok(
+      chapters.map((c) => {
+        const item = c.toJSON();
+        item.locked = isLockedFor(req.user, item.chapterNo);
+        return item;
+      })
+    );
   } catch (err) {
     next(err);
   }

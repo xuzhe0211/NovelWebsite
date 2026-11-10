@@ -51,17 +51,96 @@ function logout() {
 }
 
 // 底层请求（不走 request.js，避免循环依赖；也不做演示兜底）
-// 走 transport，自动适配本地直连 / 云托管 callContainer
+// 走 transport，自动适配本地直连 / 云托管 callContainer。
+// 返回完整 { statusCode, data }：登录失败时要靠状态码判断是「网关没就绪」还是「后端业务报错」。
 function rawRequest(options) {
-  return transport
-    .send({
-      url: options.url,
-      method: options.method,
-      data: options.data,
-      header: options.header,
-      timeout: options.timeout || 8000,
-    })
-    .then((res) => res.data);
+  return transport.send({
+    url: options.url,
+    method: options.method,
+    data: options.data,
+    header: options.header,
+    timeout: options.timeout || 8000,
+  });
+}
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// 把「不是我们后端 JSON」的响应描述清楚：网关 5xx 时 body 往往是 HTML 或空，
+// 以前这里只会显示一句「登录失败，请稍后重试」，完全看不出是容器没起来。
+function describeResponse(res, fallback) {
+  const body = res && res.data;
+  if (body && typeof body === 'object') {
+    return body.message || fallback;
+  }
+  const text = typeof body === 'string' ? body.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 60) : '';
+  const status = res && res.statusCode ? `HTTP ${res.statusCode}` : '无响应';
+  return `${fallback}（${status}${text ? '：' + text : ''}）`;
+}
+
+// 只有「容器没就绪 / 网关报错」才重试；业务错误（HTTP 200 + code≠0）不重试。
+const LOGIN_RETRY = 2;
+const LOGIN_GAP = 1200;
+
+// 用 code 换 token
+async function exchangeCode(code) {
+  const payload = {
+    url: '/api/auth/login',
+    method: 'POST',
+    data: { code: code || getDeviceId(), deviceId: getDeviceId() },
+    header: { 'content-type': 'application/json' },
+  };
+
+  let res = null;
+  let lastError = null;
+  for (let attempt = 0; attempt <= LOGIN_RETRY; attempt++) {
+    try {
+      res = await rawRequest(payload);
+      lastError = null;
+    } catch (e) {
+      res = null;
+      lastError = e;
+    }
+    // 网络层失败，或网关 5xx（容器还在拉镜像/连库），都值得再等一次
+    const coldStart = !res || (res.statusCode >= 500 && res.statusCode < 600);
+    if (!coldStart) break;
+    if (attempt === LOGIN_RETRY) break;
+    if (attempt === 0) wx.showToast({ title: '正在唤醒服务…', icon: 'none', duration: 1800 });
+    await sleep(LOGIN_GAP * (attempt + 1));
+  }
+
+  if (!res) {
+    // 域名白名单 / 网络不可达：reject 到这里的原始 errMsg 最有信息量
+    const raw = String((lastError && (lastError.errMsg || lastError.message)) || '');
+    if (/not in domain list|url not in domain|非法域名/i.test(raw)) {
+      const err = new Error('服务器域名未加入白名单，请在后台配置 request 合法域名');
+      err.code = -2;
+      throw err;
+    }
+    const err = new Error('连不上服务器，请检查后端是否启动');
+    err.code = -1;
+    err.cause = lastError;
+    throw err;
+  }
+
+  const body = res.data;
+  if (body && typeof body === 'object' && body.code === 0 && body.data && body.data.token) {
+    setToken(body.data.token);
+    setUser(body.data.user || {});
+    return body.data;
+  }
+
+  // 后端业务错误：把 code / message 原样透出（如「微信登录失败：40029 invalid code」）
+  if (body && typeof body === 'object') {
+    const err = new Error(body.message || '登录失败，请稍后重试');
+    err.code = body.code;
+    throw err;
+  }
+
+  // 走到这里说明响应不是我们的 JSON —— 基本就是网关层 5xx（容器未就绪/启动失败）
+  const err = new Error(describeResponse(res, '登录接口未返回正常数据'));
+  err.code = res.statusCode;
+  console.error('[auth] 登录响应异常', res.statusCode, String(res.data).slice(0, 200));
+  throw err;
 }
 
 // 游客模式（无 AppID）下 wx.login 可能失败，用本地持久设备ID兜底
@@ -81,32 +160,6 @@ function wxLoginCode() {
       fail: () => resolve(''),
     });
   });
-}
-
-// 用 code 换 token
-async function exchangeCode(code) {
-  let res;
-  try {
-    res = await rawRequest({
-      url: '/api/auth/login',
-      method: 'POST',
-      data: { code: code || getDeviceId(), deviceId: getDeviceId() },
-      header: { 'content-type': 'application/json' },
-    });
-  } catch (e) {
-    const err = new Error('连不上服务器，请检查后端是否启动');
-    err.code = -1;
-    err.cause = e;
-    throw err;
-  }
-  if (res && res.code === 0 && res.data && res.data.token) {
-    setToken(res.data.token);
-    setUser(res.data.user || {});
-    return res.data;
-  }
-  const err = new Error((res && res.message) || '登录失败，请稍后重试');
-  err.code = res && res.code;
-  throw err;
 }
 
 // 登录：wx.login 拿 code -> 后端换 token。
@@ -202,7 +255,9 @@ async function updateProfile(patch = {}) {
         Authorization: `Bearer ${getToken()}`,
       },
     });
-    if (res && res.code === 0 && res.data) return setUser({ ...next, ...res.data });
+    if (res && res.data && res.data.code === 0 && res.data.data) {
+      return setUser({ ...next, ...res.data.data });
+    }
   } catch (e) {
     // 离线时仅本地生效，下次登录后可再同步
   }

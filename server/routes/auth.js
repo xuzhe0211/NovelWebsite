@@ -2,7 +2,7 @@ import { Router } from 'express';
 import jwt from 'jsonwebtoken';
 import { User } from '../models/index.js';
 import { config } from '../config/index.js';
-import { codeToOpenid } from '../services/wechat.js';
+import { codeToOpenid, openidFromGateway } from '../services/wechat.js';
 import { ErrorCodes } from '../middleware/response.js';
 import { authRequired } from '../middleware/auth.js';
 
@@ -12,8 +12,16 @@ const router = Router();
 router.post('/login', async (req, res, next) => {
 	try {
 		const { code, deviceId } = req.body || {};
-		if (!code) return res.fail(ErrorCodes.BAD_REQUEST, '缺少 code');
-		const openid = await codeToOpenid(code, deviceId);
+
+		// 云托管网关注入的 X-WX-OPENID 优先：不需要 code，也不依赖容器能否访问微信接口。
+		// （小程序走 callContainer 时一定带；本地 wx.request / 公网直连则没有，自动回退）
+		let openid = openidFromGateway(req.headers);
+		if (openid) {
+			console.log('[auth] 使用网关注入的 openid 登录');
+		} else {
+			if (!code) return res.fail(ErrorCodes.BAD_REQUEST, '缺少 code');
+			openid = await codeToOpenid(code, deviceId);
+		}
 
 		const [user] = await User.findOrCreate({ where: { openid } });
 		// 新用户没有昵称时给一个默认名，避免前端显示空白/「微信用户」
